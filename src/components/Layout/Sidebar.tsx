@@ -17,7 +17,7 @@ const { Sider } = Layout;
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { collapsed, setCollapsed, selectedMenuKey, setSelectedMenuKey, addTab } = useAppStore();
+  const { collapsed, setCollapsed, setSelectedMenuKey, addTab } = useAppStore();
 
   // 二级导航菜单项
   const menuItems: MenuProps['items'] = [
@@ -116,7 +116,10 @@ const Sidebar: React.FC = () => {
         type="text"
         icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute bottom-4 left-2 w-8 h-8 flex items-center justify-center text-gray-600 hover:text-blue-500"
+        className="absolute bottom-4 left-2 w-8 h-8 flex items-center justify-center text-gray-600 hover:opacity-80"
+        style={{ ':hover': { color: '#3388FF' } }}
+        onMouseEnter={(e) => e.currentTarget.style.color = '#3388FF'}
+        onMouseLeave={(e) => e.currentTarget.style.color = ''}
       />
     </Sider>
   );

@@ -170,24 +170,7 @@ const OnlyOfficeEditor: React.FC<OnlyOfficeEditorProps> = ({
     });
   };
 
-  // 插入数据指标占位符
-  const insertDataIndicator = (indicator: string) => {
-    if (editorInstance) {
-      try {
-        // 实际实现需要调用OnlyOffice的API来插入文本
-        const placeholder = `{{${indicator}}}`;
-        console.log('Inserting indicator:', placeholder);
-        
-        // 模拟插入操作
-        if (onChange) {
-          const newContent = content + placeholder;
-          onChange(newContent);
-        }
-      } catch (error) {
-        console.warn('Error inserting indicator:', error);
-      }
-    }
-  };
+
 
   // 如果OnlyOffice未加载或加载失败，显示简单的文本编辑器
   if (!isReady || !(window as any).DocsAPI) {

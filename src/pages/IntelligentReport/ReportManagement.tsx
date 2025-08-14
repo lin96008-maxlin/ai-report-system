@@ -1,14 +1,11 @@
 import React from 'react';
-import { Card, Button, Empty } from 'antd';
+import { Button, Empty } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 
 const ReportManagement: React.FC = () => {
   return (
-    <div className="h-full">
-      <Card 
-        className="h-full shadow-sm"
-        bodyStyle={{ padding: 0, height: '100%' }}
-      >
+    <div className="h-full bg-white rounded flex mx-5 mt-5" style={{ height: 'calc(100vh - 130px - 20px)', marginBottom: '20px' }}>
+      <div className="flex-1 flex flex-col">
         {/* 页面标题栏 */}
         <div className="p-5 border-b border-[#E9ECF2]">
           <div className="flex items-center justify-between">
@@ -20,13 +17,13 @@ const ReportManagement: React.FC = () => {
         </div>
         
         {/* 内容区域 */}
-        <div className="p-5 flex-1 flex items-center justify-center">
+        <div className="p-5 flex-1 flex items-center justify-center overflow-auto" style={{ height: 'calc(100vh - 130px - 20px - 60px - 1px)' }}>
           <Empty 
             description="报告管理功能开发中..."
             image={Empty.PRESENTED_IMAGE_SIMPLE}
           />
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

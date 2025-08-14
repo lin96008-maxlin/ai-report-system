@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Select, DatePicker, Button, Card, List, Tag, message } from 'antd';
-import { PlusOutlined, InsertRowBelowOutlined } from '@ant-design/icons';
-import OnlyOfficeEditor from '@/components/OnlyOfficeEditor';
-import { cn } from '@/utils';
+import { Modal, Input, Select, DatePicker, Button, Tag, message } from 'antd';
+import { InsertRowBelowOutlined } from '@ant-design/icons';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-const { TextArea } = Input;
 
 interface ContentEditModalProps {
   visible: boolean;
   onCancel: () => void;
-  onSave: (data: ContentFormData) => void;
-  editData?: ContentFormData | null;
+  onSave: (data: any) => void;
+  editData?: any;
   mode: 'add' | 'edit';
-  parentId?: string;
+  parent_id?: string;
   level: 1 | 2 | 3;
 }
 
 interface ContentFormData {
   id?: string;
   title: string;
-  description: string;
   content: string;
   workOrderFilters: {
     reportTimeStart?: string;
@@ -65,12 +61,10 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
   onSave,
   editData,
   mode,
-  parentId,
   level
 }) => {
   const [formData, setFormData] = useState<ContentFormData>({
     title: '',
-    description: '',
     content: '',
     workOrderFilters: {
       appealSource: [],
@@ -89,7 +83,6 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
         // 重置表单
         setFormData({
           title: '',
-          description: '',
           content: '',
           workOrderFilters: {
             appealSource: [],
@@ -148,97 +141,96 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
   return (
     <Modal
       title={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 border-b border-[#E9ECF2] px-4 py-0 h-14">
           <Tag color={getLevelColor()}>{getLevelText()}内容</Tag>
           <span>{mode === 'add' ? '新增' : '编辑'}内容</span>
         </div>
       }
       open={visible}
       onCancel={onCancel}
-      width={1200}
-      style={{ top: 20 }}
-      bodyStyle={{ height: '80vh', padding: 0 }}
+      width={1600}
+      centered
+      style={{ padding: 20, margin: 0 }}
+      bodyStyle={{ height: 'calc(80vh - 40px)', padding: 20, margin: 0 }}
+      wrapClassName="!p-0 !m-0"
+      maskStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.45)' }}
       footer={
-        <div className="flex justify-end gap-2">
-          <Button onClick={onCancel}>取消</Button>
-          <Button type="primary" loading={loading} onClick={handleSave}>
-            保存
-          </Button>
+        <div className="border-t border-[#E9ECF2]">
+          <div className="flex justify-end gap-2 px-4 py-3">
+            <Button onClick={onCancel}>取消</Button>
+            <Button type="primary" loading={loading} onClick={handleSave}>
+              保存
+            </Button>
+          </div>
         </div>
       }
     >
-      <div className="h-full flex">
-        {/* 左侧内容编辑区域 */}
-        <div className="flex-1 flex flex-col p-5 border-r border-gray-200">
-          {/* 基本信息 */}
-          <div className="mb-4 space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-[#223355] mb-1">章节标题 *</label>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="请输入章节标题"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#223355] mb-1">内容描述</label>
-              <TextArea
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="请输入内容描述"
-                rows={2}
-              />
-            </div>
+      <div className="h-full flex" style={{ gap: '0px', margin: 0, padding: 0 }}>
+        {/* 左侧 - 数据指标和章节标题 */}
+        <div className="w-64">
+          <div className="px-4 py-4 border-b border-[#E9ECF2]">
+            <label className="block text-sm font-medium text-[#223355] mb-2">
+              <span className="text-[#FF4433]">*</span> 章节标题
+            </label>
+            <Input
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              placeholder="请输入章节标题"
+              className="h-10"
+            />
           </div>
-
-          {/* 数据指标列表 */}
-          <div className="mb-4">
-            <h4 className="text-sm font-medium text-[#223355] mb-2">数据指标</h4>
-            <div className="max-h-32 overflow-y-auto border border-gray-200 rounded p-2">
-              {Object.entries(INDICATOR_CATEGORIES).map(([category, indicators]) => (
-                <div key={category} className="mb-2">
-                  <div className="text-xs text-gray-500 mb-1">{category}</div>
-                  <div className="flex flex-wrap gap-1">
-                    {indicators.map(indicator => (
-                      <Button
-                        key={indicator.key}
-                        size="small"
-                        type="text"
-                        className="text-xs h-6 px-2 border border-gray-300 hover:border-blue-500 hover:text-blue-500"
-                        onClick={() => handleInsertIndicator(indicator.key)}
-                        icon={<InsertRowBelowOutlined />}
-                      >
-                        {indicator.label}
-                      </Button>
-                    ))}
-                  </div>
+          <div className="px-0 py-0 border-b border-[#E9ECF2]">
+            <h3 className="text-base font-medium text-[#223355] px-4 py-4">数据指标</h3>
+          </div>
+          <div className="px-4 py-4 overflow-y-auto" style={{ height: 'calc(100vh - 300px)', maxHeight: '500px' }}>
+            {Object.entries(INDICATOR_CATEGORIES).map(([category, indicators]) => (
+              <div key={category} className="mb-6">
+                <div className="text-sm font-medium text-[#223355] mb-3">{category}</div>
+                <div className="space-y-2">
+                  {indicators.map(indicator => (
+                    <Button
+                      key={indicator.key}
+                      size="small"
+                      type="text"
+                      className="text-xs h-8 w-full justify-start text-left border border-[#E9ECF2] hover:border-[#3388FF] hover:text-[#3388FF] rounded"
+                      onClick={() => handleInsertIndicator(indicator.key)}
+                      icon={<InsertRowBelowOutlined />}
+                    >
+                      {indicator.label}
+                    </Button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* OnlyOffice编辑器 */}
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-[#223355] mb-2">章节内容 *</label>
-            <div className="h-full">
-              <OnlyOfficeEditor
-                content={formData.content}
-                onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                height={400}
-                placeholder="请输入章节内容，可以插入数据指标占位符..."
-              />
-            </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* 右侧关联工单配置区域 */}
-        <div className="w-80 p-5">
-          <h4 className="text-sm font-medium text-[#223355] mb-3">关联工单配置</h4>
-          <div className="space-y-4">
+        {/* 中间 - 正文内容 */}
+        <div className="flex-1 border-l border-r border-[#E9ECF2]">
+          <div className="px-0 py-0 border-b border-[#E9ECF2]">
+            <h3 className="text-base font-medium text-[#223355] px-4 py-4">正文编辑</h3>
+          </div>
+          <div className="px-4 py-4 flex flex-col" style={{ height: 'calc(100% - 60px)' }}>
+            <Input.TextArea
+              value={formData.content}
+              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+              placeholder="onlyoffice一直没法接入，只能先放一个普通的文本编辑器了"
+              className="flex-1 resize-none"
+              style={{ height: '100%' }}
+            />
+          </div>
+        </div>
+
+        {/* 右侧 - 关联工单配置 */}
+        <div className="w-64">
+          <div className="px-0 py-0 border-b border-[#E9ECF2]">
+            <h3 className="text-base font-medium text-[#223355] px-4 py-4">关联工单配置</h3>
+          </div>
+          <div className="px-4 py-4 space-y-4 overflow-y-auto" style={{ height: 'calc(100% - 60px)' }}>
             <div>
-              <label className="block text-xs font-medium text-[#223355] mb-1">上报时间</label>
+              <label className="block text-sm font-medium text-[#223355] mb-2">上报时间</label>
               <RangePicker
-                size="small"
+                size="middle"
                 className="w-full"
                 value={formData.workOrderFilters.reportTimeStart && formData.workOrderFilters.reportTimeEnd ? 
                   [formData.workOrderFilters.reportTimeStart, formData.workOrderFilters.reportTimeEnd] as any : null}
@@ -267,10 +259,10 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#223355] mb-1">诉求来源</label>
+              <label className="block text-sm font-medium text-[#223355] mb-2">诉求来源</label>
               <Select
                 mode="multiple"
-                size="small"
+                size="middle"
                 className="w-full"
                 placeholder="请选择诉求来源"
                 value={formData.workOrderFilters.appealSource}
@@ -288,10 +280,10 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#223355] mb-1">所属区域</label>
+              <label className="block text-sm font-medium text-[#223355] mb-2">所属区域</label>
               <Select
                 mode="multiple"
-                size="small"
+                size="middle"
                 className="w-full"
                 placeholder="请选择所属区域"
                 value={formData.workOrderFilters.region}
@@ -309,10 +301,10 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#223355] mb-1">诉求事项</label>
+              <label className="block text-sm font-medium text-[#223355] mb-2">诉求事项</label>
               <Select
                 mode="multiple"
-                size="small"
+                size="middle"
                 className="w-full"
                 placeholder="请选择诉求事项"
                 value={formData.workOrderFilters.appealItem}
@@ -332,10 +324,10 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#223355] mb-1">诉求标签</label>
+              <label className="block text-sm font-medium text-[#223355] mb-2">诉求标签</label>
               <Select
                 mode="tags"
-                size="small"
+                size="middle"
                 className="w-full"
                 placeholder="请选择或输入诉求标签"
                 value={formData.workOrderFilters.appealTags}
@@ -352,9 +344,9 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
               </Select>
             </div>
 
-            <div className="pt-2 border-t border-gray-200">
-              <div className="text-xs text-gray-500 mb-2">配置说明</div>
-              <div className="text-xs text-gray-400 leading-relaxed">
+            <div className="pt-4 border-t border-[#E9ECF2]">
+              <div className="text-sm text-[#6B7A99] mb-2">配置说明</div>
+              <div className="text-sm text-[#6B7A99] leading-relaxed">
                 这些过滤条件将在生成报告时用于筛选相关工单数据，帮助用户快速定位到与当前内容相关的具体工单信息。
               </div>
             </div>
@@ -364,5 +356,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
     </Modal>
   );
 };
+
+
 
 export default ContentEditModal;

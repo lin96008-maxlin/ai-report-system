@@ -1,25 +1,15 @@
 import React from 'react';
-import { Layout, Menu, Avatar, Dropdown } from 'antd';
+import { Layout, Avatar, Dropdown } from 'antd';
 import { UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
 import { useAppStore } from '@/store';
-import { useNavigate, useLocation } from 'react-router-dom';
 import type { MenuProps } from 'antd';
 
 const { Header: AntHeader } = Layout;
 
 const Header: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { currentUser, addTab } = useAppStore();
+  const { currentUser } = useAppStore();
 
-  // 一级导航菜单项
-  const primaryMenuItems = [
-    {
-      key: 'intelligent-report',
-      label: '智能报告管理',
-      icon: <UserOutlined />
-    }
-  ];
+
 
   // 用户下拉菜单
   const userMenuItems: MenuProps['items'] = [
@@ -43,17 +33,7 @@ const Header: React.FC = () => {
     }
   ];
 
-  const handlePrimaryMenuClick = ({ key }: { key: string }) => {
-    if (key === 'intelligent-report') {
-      navigate('/intelligent-report/dimension-management');
-      addTab({
-        key: 'dimension-management',
-        label: '维度管理',
-        closable: false,
-        path: '/intelligent-report/dimension-management'
-      });
-    }
-  };
+
 
   const handleUserMenuClick = ({ key }: { key: string }) => {
     switch (key) {
@@ -66,13 +46,7 @@ const Header: React.FC = () => {
     }
   };
 
-  // 获取当前选中的一级菜单
-  const getCurrentPrimaryMenu = () => {
-    if (location.pathname.startsWith('/intelligent-report')) {
-      return ['intelligent-report'];
-    }
-    return [];
-  };
+
 
   return (
     <AntHeader className="flex items-center justify-between px-0 h-[60px]">
@@ -88,7 +62,7 @@ const Header: React.FC = () => {
           <div 
             className="flex items-center space-x-2 px-4 h-[60px] text-white font-bold"
             style={{
-              background: 'linear-gradient(to right, #2167D9, #3388FF)'
+              background: '#185FC0'
             }}
           >
             <UserOutlined className="text-lg text-white" />

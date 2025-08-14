@@ -25,6 +25,11 @@ body {
   height: 100vh;
 }
 
+/* Card 组件默认边框颜色 */
+.ant-card {
+  border-color: #EAECF2 !important;
+}
+
 .ant-layout-header {
   padding: 0;
   height: 60px;
@@ -78,4 +83,27 @@ body {
 
 .ant-table-tbody > tr:hover > td {
   background: #EFF9FF !important;
+}
+
+/* Modal样式覆盖 - 移除额外20px间距 */
+.ant-modal-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.ant-modal-body {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.ant-modal-header {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-bottom: none;
+}
+
+.ant-modal-footer {
+  padding: 0 !important;
+  margin: 0 !important;
+  border-top: none;
 }

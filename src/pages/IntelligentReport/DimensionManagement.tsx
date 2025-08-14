@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Button, DatePicker, Select, Checkbox, message, Modal, Tree, Empty, Pagination } from 'antd';
-import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, FolderAddOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { Card, Input, Button, DatePicker, Checkbox, message, Modal, Tree, Empty, Pagination } from 'antd';
+import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+// import { useNavigate } from 'react-router-dom';
 import type { TreeDataNode } from 'antd';
 import { Dimension, DimensionCategory } from '@/types';
 import { cn } from '@/utils';
 
 const { RangePicker } = DatePicker;
-const { Option } = Select;
+// const { Option } = Select;
 
 const DimensionManagement: React.FC = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchForm, setSearchForm] = useState({
     name: '',
@@ -28,14 +28,26 @@ const DimensionManagement: React.FC = () => {
     pageSize: 12,
     total: 0
   });
+  const [expandedKeys, setExpandedKeys] = useState<string[]>(['all']);
+  
+  // 分类管理相关状态
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [categoryModalMode, setCategoryModalMode] = useState<'add' | 'edit' | 'addChild'>('add');
+  const [currentCategory, setCurrentCategory] = useState<DimensionCategory | null>(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    description: '',
+    parent_id: undefined as string | undefined
+  });
+  const [searchCategory, setSearchCategory] = useState('');
 
   // 模拟数据
   const mockCategories: DimensionCategory[] = [
-    { id: '1', name: '整体分析相关', parentId: null, description: '整体分析相关维度', createdAt: '2024-01-01', createdBy: '系统管理员' },
-    { id: '2', name: '处置单位分析相关', parentId: null, description: '处置单位分析相关维度', createdAt: '2024-01-01', createdBy: '系统管理员' },
-    { id: '3', name: '问题类型分析相关', parentId: null, description: '问题类型分析相关维度', createdAt: '2024-01-01', createdBy: '系统管理员' },
-    { id: '4', name: '概述', parentId: '1', description: '整体分析概述', createdAt: '2024-01-01', createdBy: '系统管理员' },
-    { id: '5', name: '详细分析', parentId: '1', description: '整体详细分析', createdAt: '2024-01-01', createdBy: '系统管理员' }
+    { id: '1', name: '整体分析相关', parent_id: undefined, description: '整体分析相关维度', created_at: '2024-01-01', created_by: '系统管理员' },
+    { id: '2', name: '处置单位分析相关', parent_id: undefined, description: '处置单位分析相关维度', created_at: '2024-01-01', created_by: '系统管理员' },
+    { id: '3', name: '问题类型分析相关', parent_id: undefined, description: '问题类型分析相关维度', created_at: '2024-01-01', created_by: '系统管理员' },
+    { id: '4', name: '概述', parent_id: '1', description: '整体分析概述', created_at: '2024-01-01', created_by: '系统管理员' },
+    { id: '5', name: '详细分析', parent_id: '1', description: '整体详细分析', created_at: '2024-01-01', created_by: '系统管理员' }
   ];
 
   const mockDimensions: Dimension[] = [
@@ -43,75 +55,198 @@ const DimensionManagement: React.FC = () => {
       id: '1',
       name: '工单总体概况分析',
       description: '对工单总体情况进行分析，包括数量、趋势等',
-      categoryId: '1',
-      contentStructure: {},
-      createdAt: '2024-01-15 10:30:00',
-      createdBy: '张三',
-      updatedAt: '2024-01-20 14:20:00',
-      updatedBy: '李四'
+      category_id: '1',
+      content_structure: { level1Contents: [] },
+      created_at: '2024-01-15 10:30:00',
+      created_by: '张三',
+      updated_at: '2024-01-20 14:20:00',
+      updated_by: '李四'
     },
     {
       id: '2',
       name: '处置效率分析',
       description: '分析各处置单位的工单处理效率和质量',
-      categoryId: '2',
-      contentStructure: {},
-      createdAt: '2024-01-16 09:15:00',
-      createdBy: '王五',
-      updatedAt: '2024-01-18 16:45:00',
-      updatedBy: '赵六'
+      category_id: '2',
+      content_structure: { level1Contents: [] },
+      created_at: '2024-01-16 09:15:00',
+      created_by: '王五',
+      updated_at: '2024-01-18 16:45:00',
+      updated_by: '赵六'
     },
     {
       id: '3',
       name: '问题分类统计',
       description: '按问题类型对工单进行分类统计分析',
-      categoryId: '3',
-      contentStructure: {},
-      createdAt: '2024-01-17 11:20:00',
-      createdBy: '孙七',
-      updatedAt: '2024-01-19 13:30:00',
-      updatedBy: '周八'
+      category_id: '3',
+      content_structure: { level1Contents: [] },
+      created_at: '2024-01-17 11:20:00',
+      created_by: '孙七',
+      updated_at: '2024-01-19 13:30:00',
+      updated_by: '周八'
     },
     {
       id: '4',
       name: '满意度分析',
       description: '分析用户对工单处理结果的满意度情况',
-      categoryId: '1',
-      contentStructure: {},
-      createdAt: '2024-01-18 14:10:00',
-      createdBy: '吴九',
-      updatedAt: '2024-01-21 10:15:00',
-      updatedBy: '郑十'
+      category_id: '1',
+      content_structure: { level1Contents: [] },
+      created_at: '2024-01-18 14:10:00',
+      created_by: '吴九',
+      updated_at: '2024-01-21 10:15:00',
+      updated_by: '郑十'
     }
   ];
 
   useEffect(() => {
     setCategories(mockCategories);
     setDimensions(mockDimensions);
+    // 初始化展开所有节点
+    const allCategoryIds = mockCategories.map(cat => cat.id);
+    setExpandedKeys(['all', ...allCategoryIds]);
   }, []);
 
   // 构建树形数据
+  const buildChildren = (parentId: string | null): TreeDataNode[] => {
+    const childCategories = categories.filter(cat => cat.parent_id === parentId || (parentId === null && cat.parent_id === undefined));
+    
+    return childCategories
+      .map(cat => {
+        const children = buildChildren(cat.id);
+        
+        // 简化搜索过滤逻辑：只在有搜索条件时过滤
+        const matchesSearch = !searchCategory.trim() || 
+          cat.name.toLowerCase().includes(searchCategory.toLowerCase()) ||
+          (cat.description && cat.description.toLowerCase().includes(searchCategory.toLowerCase()));
+        
+        // 如果有子节点，始终显示
+        if (children && children.length > 0) {
+          return {
+            title: (
+              <div className="relative group" style={{ width: '240px', marginLeft: '0px' }}>
+                <span>{cat.name}</span>
+                <div className="absolute top-0 left-0 right-0 bottom-0 hidden group-hover:flex items-center justify-center bg-white bg-opacity-0 rounded space-x-1">
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    icon={<EditOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditCategory(cat);
+                    }}
+                    className="text-xs p-1 h-6 w-6"
+                  />
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    icon={<PlusOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddChildCategory(cat);
+                    }}
+                    className="text-xs p-1 h-6 w-6"
+                  />
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    icon={<DeleteOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCategory(cat.id);
+                    }}
+                    className="text-xs p-1 h-6 w-6 text-red-500 hover:text-red-600"
+                  />
+                </div>
+              </div>
+            ),
+            key: cat.id,
+            icon: (
+               <img 
+                 src="/folder-icon.svg" 
+                 alt="folder" 
+                 style={{ width: '16px', height: '16px' }}
+               />
+             ),
+            children: children,
+            isLeaf: false
+          };
+        }
+        
+        // 没有子节点时，根据搜索条件决定是否显示
+        if (matchesSearch) {
+          return {
+            title: (
+              <div className="relative group" style={{ width: '240px', marginLeft: '0px' }}>
+                <span>{cat.name}</span>
+                <div className="absolute top-0 left-0 right-0 bottom-0 hidden group-hover:flex items-center justify-center bg-white bg-opacity-0 rounded space-x-1">
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    icon={<EditOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditCategory(cat);
+                    }}
+                    className="text-xs p-1 h-6 w-6"
+                  />
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    icon={<PlusOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddChildCategory(cat);
+                    }}
+                    className="text-xs p-1 h-6 w-6"
+                  />
+                  <Button 
+                    type="text" 
+                    size="small" 
+                    icon={<DeleteOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCategory(cat.id);
+                    }}
+                    className="text-xs p-1 h-6 w-6 text-red-500 hover:text-red-600"
+                  />
+                </div>
+              </div>
+            ),
+            key: cat.id,
+            icon: (
+               <img 
+                 src="/folder-icon.svg" 
+                 alt="folder" 
+                 style={{ width: '16px', height: '16px' }}
+               />
+             ),
+            children: [],
+            isLeaf: true
+          };
+        }
+        
+        return null;
+      })
+      .filter(Boolean) as TreeDataNode[];
+  };
+
   const buildTreeData = (): TreeDataNode[] => {
+    const folderIcon = (
+       <img 
+         src="/folder-icon.svg" 
+         alt="folder" 
+         style={{ width: '16px', height: '16px' }}
+       />
+     );
+    
     const rootNodes: TreeDataNode[] = [
       {
         title: '所有维度',
         key: 'all',
-        icon: <FolderAddOutlined />
+        icon: folderIcon,
+        children: buildChildren(null),
+        isLeaf: false
       }
     ];
-
-    const buildChildren = (parentId: string | null): TreeDataNode[] => {
-      return categories
-        .filter(cat => cat.parentId === parentId)
-        .map(cat => ({
-          title: cat.name,
-          key: cat.id,
-          icon: <FolderAddOutlined />,
-          children: buildChildren(cat.id)
-        }));
-    };
-
-    rootNodes[0].children = buildChildren(null);
     return rootNodes;
   };
 
@@ -120,8 +255,8 @@ const DimensionManagement: React.FC = () => {
     const category = categories.find(cat => cat.id === categoryId);
     if (!category) return '';
     
-    if (category.parentId) {
-      const parentPath = getCategoryPath(category.parentId);
+    if (category.parent_id) {
+      const parentPath = getCategoryPath(category.parent_id);
       return parentPath ? `${parentPath}/${category.name}` : category.name;
     }
     return category.name;
@@ -130,7 +265,7 @@ const DimensionManagement: React.FC = () => {
   // 过滤维度数据
   const allFilteredDimensions = dimensions.filter(dimension => {
     // 分类过滤
-    if (selectedCategory !== 'all' && dimension.categoryId !== selectedCategory) {
+    if (selectedCategory !== 'all' && dimension.category_id !== selectedCategory) {
       return false;
     }
     
@@ -145,14 +280,14 @@ const DimensionManagement: React.FC = () => {
     }
     
     // 创建人过滤
-    if (searchForm.creator && !dimension.createdBy.includes(searchForm.creator)) {
+    if (searchForm.creator && !dimension.created_by.includes(searchForm.creator)) {
       return false;
     }
     
     // 日期范围过滤
     if (searchForm.dateRange && searchForm.dateRange.length === 2) {
       const [start, end] = searchForm.dateRange;
-      const createdDate = new Date(dimension.createdAt);
+      const createdDate = new Date(dimension.created_at);
       if (createdDate < start || createdDate > end) {
         return false;
       }
@@ -231,7 +366,11 @@ const DimensionManagement: React.FC = () => {
   const handleDeleteDimension = (dimensionId: string) => {
     Modal.confirm({
       title: '确认删除',
-      content: '确定要删除这个维度吗？删除后无法恢复。',
+      content: (
+        <div style={{ paddingLeft: 20, paddingRight: 20, marginTop: 8, marginBottom: 8 }}>
+          确定要删除这个维度吗？删除后无法恢复。
+        </div>
+      ),
       okText: '确定',
       cancelText: '取消',
       onOk: () => {
@@ -250,7 +389,11 @@ const DimensionManagement: React.FC = () => {
     
     Modal.confirm({
       title: '确认批量删除',
-      content: `确定要删除选中的 ${selectedDimensions.length} 个维度吗？删除后无法恢复。`,
+      content: (
+        <div style={{ paddingLeft: 20, paddingRight: 20, marginTop: 8, marginBottom: 8 }}>
+          确定要删除选中的 {selectedDimensions.length} 个维度吗？删除后无法恢复。
+        </div>
+      ),
       okText: '确定',
       cancelText: '取消',
       onOk: () => {
@@ -290,25 +433,128 @@ const DimensionManagement: React.FC = () => {
     setSelectedDimensions([]);
   };
 
+  // 分类管理函数
+  const handleAddCategory = () => {
+    setCategoryModalMode('add');
+    setCurrentCategory(null);
+    setCategoryForm({ name: '', description: '', parent_id: undefined });
+    setCategoryModalVisible(true);
+  };
+
+  const handleEditCategory = (category: DimensionCategory) => {
+    setCategoryModalMode('edit');
+    setCurrentCategory(category);
+    setCategoryForm({
+      name: category.name,
+      description: category.description || '',
+      parent_id: category.parent_id
+    });
+    setCategoryModalVisible(true);
+  };
+
+  const handleAddChildCategory = (parentCategory: DimensionCategory) => {
+    setCategoryModalMode('addChild');
+    setCurrentCategory(parentCategory);
+    setCategoryForm({ name: '', description: '', parent_id: parentCategory.id });
+    setCategoryModalVisible(true);
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: (
+        <div style={{ paddingLeft: 20, paddingRight: 20, marginTop: 8, marginBottom: 8 }}>
+          删除分类将同时删除其下所有子分类和维度，此操作不可恢复，确定要删除吗？
+        </div>
+      ),
+      okText: '确定',
+      cancelText: '取消',
+      onOk: () => {
+        // 删除分类及其子分类
+        const deleteRecursive = (id: string) => {
+          const children = categories.filter(cat => cat.parent_id === id);
+          children.forEach(child => deleteRecursive(child.id));
+          setCategories(prev => prev.filter(cat => cat.id !== id));
+        };
+        deleteRecursive(categoryId);
+        
+        // 删除该分类下的所有维度
+        setDimensions(prev => prev.filter(dim => dim.category_id !== categoryId));
+        
+        // 如果删除的是当前选中的分类，重置为全部
+        if (selectedCategory === categoryId) {
+          setSelectedCategory('all');
+        }
+        
+        message.success('分类删除成功');
+      }
+    });
+  };
+
+  const handleCategoryModalOk = () => {
+    if (!categoryForm.name.trim()) {
+      message.error('请输入分类名称');
+      return;
+    }
+
+    if (categoryModalMode === 'edit' && currentCategory) {
+      // 编辑分类
+      setCategories(prev => prev.map(cat => 
+        cat.id === currentCategory.id 
+          ? { ...cat, name: categoryForm.name, description: categoryForm.description }
+          : cat
+      ));
+      message.success('分类编辑成功');
+    } else {
+      // 新增分类
+      const newCategory: DimensionCategory = {
+        id: Date.now().toString(),
+        name: categoryForm.name,
+        description: categoryForm.description,
+        parent_id: categoryForm.parent_id ?? undefined,
+        created_at: new Date().toISOString().split('T')[0],
+        created_by: '当前用户'
+      };
+      setCategories(prev => [...prev, newCategory]);
+      
+      // 自动展开父分类节点和新分类节点
+      const keysToExpand = ['all', newCategory.id];
+      if (categoryForm.parent_id) {
+        keysToExpand.push(categoryForm.parent_id);
+      }
+      setExpandedKeys(prev => [...new Set([...prev, ...keysToExpand])]);
+      
+      message.success('分类新增成功');
+    }
+
+    setCategoryModalVisible(false);
+  };
+
+  const handleCategoryModalCancel = () => {
+    setCategoryModalVisible(false);
+  };
+
   return (
-    <div className="h-full bg-white rounded flex mx-5 mt-5 mb-5" style={{ height: 'calc(100vh - 130px)' }}>
+    <div className="h-full bg-white rounded flex mx-5 mt-5" style={{ height: 'calc(100vh - 130px - 20px)', marginBottom: '20px' }}>
       {/* 左侧目录树 */}
-      <div className="w-[280px] flex-shrink-0 p-5">
+      <div className="w-[280px] flex-shrink-0 px-5 pb-5">
         <div className="h-full flex flex-col">
-          <h3 className="text-lg font-medium text-gray-800 mb-3">维度分类</h3>
+          <h3 className="text-lg font-medium text-gray-800 mb-3 pt-5">维度分类</h3>
           {/* 树查询框 */}
           <Input
             placeholder="搜索分类"
             className="mb-3"
             allowClear
+            value={searchCategory}
+            onChange={(e) => setSearchCategory(e.target.value)}
           />
-          <Button type="dashed" icon={<PlusOutlined />} size="small" block className="mb-3">
+          <Button type="dashed" icon={<PlusOutlined />} size="small" block className="mb-0" style={{ marginBottom: '-16px' }} onClick={handleAddCategory}>
             新增分类
           </Button>
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto overflow-x-hidden" style={{ marginTop: '-16px' }}>
             <Tree
               showIcon
-              defaultExpandAll
+              expandedKeys={expandedKeys}
               selectedKeys={[selectedCategory]}
               treeData={buildTreeData()}
               onSelect={(keys) => {
@@ -316,8 +562,22 @@ const DimensionManagement: React.FC = () => {
                   setSelectedCategory(keys[0] as string);
                 }
               }}
-              showLine
-              className="custom-tree text-sm"
+              onExpand={(keys) => {
+                setExpandedKeys(keys as string[]);
+              }}
+              className="custom-tree text-sm tree-compact-spacing"
+              style={{ marginTop: 0, paddingTop: 0, marginBottom: 0 }}
+              switcherIcon={({ expanded }) => 
+                expanded ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 14l5-5 5 5z"/>
+                  </svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 10l5 5 5-5z"/>
+                  </svg>
+                )
+              }
             />
           </div>
           
@@ -330,6 +590,23 @@ const DimensionManagement: React.FC = () => {
                 align-items: center !important;
                 font-size: 14px !important;
                 color: #223355 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                position: relative !important;
+                width: 240px !important;
+                margin-left: 0px !important;
+                margin-bottom: 0px !important;
+                margin-top: 0px !important;
+              }
+              .custom-tree .ant-tree-treenode:hover {
+                background-color: #F8FAFC !important;
+                width: 240px !important;
+                margin-left: 0px !important;
+              }
+              .custom-tree .ant-tree-treenode.ant-tree-treenode-selected {
+                background-color: #F0F9FF !important;
+                width: 240px !important;
+                margin-left: 0px !important;
               }
               .custom-tree .ant-tree-node-content-wrapper {
                 height: 40px !important;
@@ -337,14 +614,36 @@ const DimensionManagement: React.FC = () => {
                 display: flex !important;
                 align-items: center !important;
                 padding: 0 8px !important;
-                border-radius: 4px !important;
+                border-radius: 0 !important;
+                flex: 1 !important;
+                margin-left: 0px !important;
+                padding-left: 0px !important;
+                background: transparent !important;
+                margin-bottom: 0px !important;
+                margin-top: 0px !important;
+                gap: 4px !important;
               }
               .custom-tree .ant-tree-node-selected .ant-tree-node-content-wrapper {
-                background-color: #F0F9FF !important;
                 color: #3388FF !important;
-                width: 240px !important;
                 height: 40px !important;
                 margin-left: 0px !important;
+                padding-left: 0px !important;
+                background: transparent !important;
+                margin-bottom: 0px !important;
+                margin-top: 0px !important;
+              }
+              .custom-tree .ant-tree-list-holder {
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 40px !important;
+              }
+              .custom-tree .ant-tree-switcher {
+                margin: 0 !important;
+                padding: 0 4px !important;
+              }
+              .custom-tree .ant-tree-node-selected .ant-tree-title {
+                color: #3388FF !important;
+                font-weight: 500 !important;
               }
               .custom-tree .ant-tree-title {
                 color: inherit !important;
@@ -356,12 +655,59 @@ const DimensionManagement: React.FC = () => {
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
+                margin: 0 !important;
+                padding: 0 4px !important;
+                height: 40px !important;
+                line-height: 40px !important;
               }
               .custom-tree .ant-tree-iconEle {
                 color: #6B7A99 !important;
                 display: flex !important;
                 align-items: center !important;
-                margin-right: 8px !important;
+                margin-right: 4px !important;
+              }
+
+              .custom-tree .ant-tree-list-holder-inner {
+                padding: 0 !important;
+                margin: 0 !important;
+                line-height: 40px !important;
+              }
+              .custom-tree .ant-tree-indent {
+                margin: 0 !important;
+                padding: 0 !important;
+                height: 40px !important;
+                line-height: 40px !important;
+              }
+              .custom-tree.ant-tree {
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 40px !important;
+              }
+              .custom-tree .ant-tree-list {
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 40px !important;
+              }
+              .custom-tree.ant-tree-show-line {
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 40px !important;
+              }
+              .custom-tree .ant-tree-show-line {
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 40px !important;
+              }
+              
+              .custom-tree .ant-tree-node-content-wrapper:hover {
+                background-color: #F5F7FA !important;
+                color: #3388FF !important;
+                width: 240px !important;
+                height: 40px !important;
+                margin-left: 0px !important;
+                padding-left: 8px !important;
+                margin-bottom: 0px !important;
+                margin-top: 0px !important;
               }
             `
           }} />
@@ -374,8 +720,8 @@ const DimensionManagement: React.FC = () => {
       {/* 右侧内容区 */}
        <div className="flex-1 flex flex-col min-w-0">
           {/* 查询条件区 */}
-          <div className="p-5 border-b border-[#E9ECF2] flex-shrink-0">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="pt-5 pb-4 px-5 border-b border-[#E9ECF2] flex-shrink-0 pr-0">
+            <div className="flex items-center justify-between flex-wrap">
               {/* 第一行：默认显示的查询条件 */}
               <div className="flex items-center space-x-4 flex-1">
                 <div className="flex items-center space-x-2">
@@ -398,28 +744,28 @@ const DimensionManagement: React.FC = () => {
                     allowClear
                   />
                 </div>
-                
-                {/* 按钮组 */}
-                <div className="flex items-center space-x-2 ml-auto mr-5">
-                  <Button 
-                    type="link" 
-                    onClick={() => setExpanded(!expanded)}
-                    className="px-0"
-                  >
-                    {expanded ? '收起' : '展开'}
-                  </Button>
-                  <Button icon={<ReloadOutlined />} onClick={handleReset}>
-                    重置
-                  </Button>
-                  <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} loading={loading}>
-                    查询
-                  </Button>
-                </div>
+              </div>
+              
+              {/* 按钮组（右侧预留20px）*/}
+              <div className="flex items-center space-x-2 mr-5">
+                <Button 
+                  type="link" 
+                  onClick={() => setExpanded(!expanded)}
+                  className="px-0"
+                >
+                  {expanded ? '收起' : '展开'}
+                </Button>
+                <Button icon={<ReloadOutlined />} onClick={handleReset}>
+                  重置
+                </Button>
+                <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} loading={loading}>
+                  查询
+                </Button>
               </div>
               
               {/* 展开后显示的查询条件 */}
               {expanded && (
-                <div className="w-full flex items-center space-x-4 mt-4">
+                <div className="w-full flex items-center space-x-4 pt-2.5">
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-600 whitespace-nowrap">创建时间:</span>
                     <RangePicker
@@ -489,8 +835,9 @@ const DimensionManagement: React.FC = () => {
                         key={dimension.id}
                         className={cn(
                           "dimension-card cursor-pointer hover:shadow-md transition-shadow",
-                          selectedDimensions.includes(dimension.id) && "ring-2 ring-blue-500"
+                          selectedDimensions.includes(dimension.id) && "border-2"
                         )}
+                        style={selectedDimensions.includes(dimension.id) ? { borderColor: '#3388FF' } : {}}
                         onClick={() => handleEditDimension(dimension.id)}
                         actions={[
                           <EditOutlined key="edit" onClick={(e) => {
@@ -504,33 +851,38 @@ const DimensionManagement: React.FC = () => {
                         ]}
                       >
                         <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <Checkbox
                               checked={selectedDimensions.includes(dimension.id)}
                               onChange={(e) => handleDimensionSelect(dimension.id, e.target.checked)}
                               onClick={(e) => e.stopPropagation()}
                             />
-                            <span className="text-sm text-gray-500">#{(pagination.current - 1) * pagination.pageSize + index + 1}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#3388FF' }}>
+                                <span className="text-xs font-medium text-white">{(pagination.current - 1) * pagination.pageSize + index + 1}</span>
+                              </div>
+                              <span className="font-medium text-gray-900">{dimension.name}</span>
+                            </div>
                           </div>
                         </div>
                         
                         <Card.Meta
-                          title={dimension.name}
+                          title={null}
                           description={
                             <div>
                               <p className="text-gray-600 mb-2">{dimension.description || '暂无描述'}</p>
                               <div className="space-y-1 text-xs text-gray-500">
                                 <div className="flex justify-between">
                                   <span>分类:</span>
-                                  <span className="text-blue-600">{getCategoryPath(dimension.categoryId)}</span>
+                                  <span style={{ color: '#3388FF' }}>{getCategoryPath(dimension.category_id)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span>创建时间:</span>
-                                  <span>{dimension.createdAt}</span>
+                                  <span>{dimension.created_at}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span>创建人:</span>
-                                  <span>{dimension.createdBy}</span>
+                                  <span>{dimension.created_by}</span>
                                 </div>
                               </div>
                             </div>
@@ -559,7 +911,67 @@ const DimensionManagement: React.FC = () => {
             )}
           </div>
         </div>
-      </div>
+      
+      {/* 分类管理Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 border-b border-[#E9ECF2] px-4 py-0 h-14">
+            <span>{categoryModalMode === 'add' ? '新增分类' : categoryModalMode === 'edit' ? '编辑分类' : '新增子分类'}</span>
+          </div>
+        }
+        open={categoryModalVisible}
+        onOk={handleCategoryModalOk}
+        onCancel={handleCategoryModalCancel}
+        okText="确定"
+        cancelText="取消"
+        width={500}
+        centered
+        style={{ padding: 20, margin: 0 }}
+        bodyStyle={{ padding: 0, margin: 0 }}
+        wrapClassName="!p-0 !m-0"
+        maskStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.45)' }}
+        footer={
+          <div className="border-t border-[#E9ECF2]">
+            <div className="flex justify-end gap-2 px-4 py-3">
+              <Button onClick={handleCategoryModalCancel}>取消</Button>
+              <Button type="primary" onClick={handleCategoryModalOk}>
+                确定
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-4 px-5">
+          <div>
+            <label className="block text-sm font-medium text-[#223355] mb-2">
+              <span className="text-[#FF4433]">*</span> 分类名称
+            </label>
+            <Input
+              placeholder="请输入分类名称"
+              value={categoryForm.name}
+              onChange={(e) => setCategoryForm(prev => ({ ...prev, name: e.target.value }))}
+              className="h-10"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#223355] mb-2">分类描述</label>
+            <Input.TextArea
+              placeholder="请输入分类描述"
+              value={categoryForm.description}
+              onChange={(e) => setCategoryForm(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+          {categoryModalMode === 'addChild' && currentCategory && (
+            <div>
+              <label className="block text-sm font-medium text-[#223355] mb-2">父分类</label>
+              <Input value={currentCategory.name} disabled className="h-10" />
+            </div>
+          )}
+        </div>
+      </Modal>
+    </div>
   );
 };
 

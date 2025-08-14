@@ -34,7 +34,7 @@ const App: React.FC = () => {
               <TabsNavigation />
               
               {/* 页面内容 */}
-              <Content className="flex-1 bg-[#f0f2f5] p-0 overflow-hidden" style={{ height: 'calc(100vh - 90px)' }}>
+              <Content className="flex-1 bg-[#f0f2f5] p-0 overflow-hidden" style={{ height: 'calc(100vh - 120px)', paddingBottom: '20px' }}>
                 <Routes>
                   {/* 默认重定向到维度管理 */}
                   <Route path="/" element={<Navigate to="/intelligent-report/dimension-management" replace />} />

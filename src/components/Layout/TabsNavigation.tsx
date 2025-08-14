@@ -1,15 +1,9 @@
 import React, { useEffect } from 'react';
 import { Tabs } from 'antd';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
-import { cn } from '@/utils';
 
-interface Tab {
-  key: string;
-  label: string;
-  component: string;
-  params?: any;
-}
+
 
 const TabsNavigation: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +57,7 @@ const TabsNavigation: React.FC = () => {
   const items = tabs.map(tab => ({
     key: tab.key,
     label: tab.label,
-    closable: true // 所有页签都可关闭
+    closable: tab.closable !== false // 默认允许关闭
   }));
 
   return (
@@ -74,7 +68,7 @@ const TabsNavigation: React.FC = () => {
       {/* 页签导航区 */}
       <div className="relative -mt-[35px] px-5 z-10">
         <Tabs
-          type="card"
+          type="editable-card"
           activeKey={activeTabKey}
           onChange={handleTabChange}
           onEdit={handleTabEdit}

@@ -39,7 +39,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     {
       key: 'dimension-management',
       label: '维度管理',
-      closable: false,
+      closable: true,
       path: '/intelligent-report/dimension-management'
     }
   ],
