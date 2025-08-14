@@ -1,0 +1,29 @@
+/* App.css */
+.app {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-layout {
+  height: 100%;
+}
+
+.app-content {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 全局样式重置 */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+}

@@ -1,0 +1,566 @@
+import React, { useState, useEffect } from 'react';
+import { Card, Input, Button, DatePicker, Select, Checkbox, message, Modal, Tree, Empty, Pagination } from 'antd';
+import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, FolderAddOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import type { TreeDataNode } from 'antd';
+import { Dimension, DimensionCategory } from '@/types';
+import { cn } from '@/utils';
+
+const { RangePicker } = DatePicker;
+const { Option } = Select;
+
+const DimensionManagement: React.FC = () => {
+  const navigate = useNavigate();
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchForm, setSearchForm] = useState({
+    name: '',
+    description: '',
+    dateRange: null as any,
+    creator: ''
+  });
+  const [selectedDimensions, setSelectedDimensions] = useState<string[]>([]);
+  const [dimensions, setDimensions] = useState<Dimension[]>([]);
+  const [categories, setCategories] = useState<DimensionCategory[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 12,
+    total: 0
+  });
+
+  // 模拟数据
+  const mockCategories: DimensionCategory[] = [
+    { id: '1', name: '整体分析相关', parentId: null, description: '整体分析相关维度', createdAt: '2024-01-01', createdBy: '系统管理员' },
+    { id: '2', name: '处置单位分析相关', parentId: null, description: '处置单位分析相关维度', createdAt: '2024-01-01', createdBy: '系统管理员' },
+    { id: '3', name: '问题类型分析相关', parentId: null, description: '问题类型分析相关维度', createdAt: '2024-01-01', createdBy: '系统管理员' },
+    { id: '4', name: '概述', parentId: '1', description: '整体分析概述', createdAt: '2024-01-01', createdBy: '系统管理员' },
+    { id: '5', name: '详细分析', parentId: '1', description: '整体详细分析', createdAt: '2024-01-01', createdBy: '系统管理员' }
+  ];
+
+  const mockDimensions: Dimension[] = [
+    {
+      id: '1',
+      name: '工单总体概况分析',
+      description: '对工单总体情况进行分析，包括数量、趋势等',
+      categoryId: '1',
+      contentStructure: {},
+      createdAt: '2024-01-15 10:30:00',
+      createdBy: '张三',
+      updatedAt: '2024-01-20 14:20:00',
+      updatedBy: '李四'
+    },
+    {
+      id: '2',
+      name: '处置效率分析',
+      description: '分析各处置单位的工单处理效率和质量',
+      categoryId: '2',
+      contentStructure: {},
+      createdAt: '2024-01-16 09:15:00',
+      createdBy: '王五',
+      updatedAt: '2024-01-18 16:45:00',
+      updatedBy: '赵六'
+    },
+    {
+      id: '3',
+      name: '问题分类统计',
+      description: '按问题类型对工单进行分类统计分析',
+      categoryId: '3',
+      contentStructure: {},
+      createdAt: '2024-01-17 11:20:00',
+      createdBy: '孙七',
+      updatedAt: '2024-01-19 13:30:00',
+      updatedBy: '周八'
+    },
+    {
+      id: '4',
+      name: '满意度分析',
+      description: '分析用户对工单处理结果的满意度情况',
+      categoryId: '1',
+      contentStructure: {},
+      createdAt: '2024-01-18 14:10:00',
+      createdBy: '吴九',
+      updatedAt: '2024-01-21 10:15:00',
+      updatedBy: '郑十'
+    }
+  ];
+
+  useEffect(() => {
+    setCategories(mockCategories);
+    setDimensions(mockDimensions);
+  }, []);
+
+  // 构建树形数据
+  const buildTreeData = (): TreeDataNode[] => {
+    const rootNodes: TreeDataNode[] = [
+      {
+        title: '所有维度',
+        key: 'all',
+        icon: <FolderAddOutlined />
+      }
+    ];
+
+    const buildChildren = (parentId: string | null): TreeDataNode[] => {
+      return categories
+        .filter(cat => cat.parentId === parentId)
+        .map(cat => ({
+          title: cat.name,
+          key: cat.id,
+          icon: <FolderAddOutlined />,
+          children: buildChildren(cat.id)
+        }));
+    };
+
+    rootNodes[0].children = buildChildren(null);
+    return rootNodes;
+  };
+
+  // 获取分类路径
+  const getCategoryPath = (categoryId: string): string => {
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return '';
+    
+    if (category.parentId) {
+      const parentPath = getCategoryPath(category.parentId);
+      return parentPath ? `${parentPath}/${category.name}` : category.name;
+    }
+    return category.name;
+  };
+
+  // 过滤维度数据
+  const allFilteredDimensions = dimensions.filter(dimension => {
+    // 分类过滤
+    if (selectedCategory !== 'all' && dimension.categoryId !== selectedCategory) {
+      return false;
+    }
+    
+    // 名称过滤
+    if (searchForm.name && !dimension.name.includes(searchForm.name)) {
+      return false;
+    }
+    
+    // 描述过滤
+    if (searchForm.description && !dimension.description?.includes(searchForm.description)) {
+      return false;
+    }
+    
+    // 创建人过滤
+    if (searchForm.creator && !dimension.createdBy.includes(searchForm.creator)) {
+      return false;
+    }
+    
+    // 日期范围过滤
+    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+      const [start, end] = searchForm.dateRange;
+      const createdDate = new Date(dimension.createdAt);
+      if (createdDate < start || createdDate > end) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
+  // 分页后的维度数据
+  const filteredDimensions = allFilteredDimensions.slice(
+    (pagination.current - 1) * pagination.pageSize,
+    pagination.current * pagination.pageSize
+  );
+
+  // 更新总数
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      total: allFilteredDimensions.length
+    }));
+  }, [allFilteredDimensions.length]);
+
+  // 处理搜索
+  const handleSearch = () => {
+    setLoading(true);
+    // 模拟API调用
+    setTimeout(() => {
+      setLoading(false);
+      message.success('查询完成');
+    }, 500);
+  };
+
+  // 重置搜索条件
+  const handleReset = () => {
+    setSearchForm({
+      name: '',
+      description: '',
+      dateRange: null,
+      creator: ''
+    });
+    setSelectedCategory('all');
+  };
+
+  // 新增维度
+  const handleAddDimension = () => {
+    // 在新页签中打开维度新增页
+    const newTab = {
+      key: 'dimension-detail-new',
+      label: '新增维度',
+      closable: true,
+      path: '/intelligent-report/dimension-detail'
+    };
+    
+    // 通过全局状态管理添加新页签
+    window.dispatchEvent(new CustomEvent('addTab', { detail: newTab }));
+  };
+
+  // 编辑维度
+  const handleEditDimension = (dimensionId: string) => {
+    const dimension = dimensions.find(d => d.id === dimensionId);
+    if (dimension) {
+      // 在新页签中打开维度详情页
+      const newTab = {
+        key: `dimension-detail-${dimension.id}`,
+        label: '编辑维度',
+        closable: true,
+        path: `/intelligent-report/dimension-detail/${dimension.id}`
+      };
+      
+      // 通过全局状态管理添加新页签
+      window.dispatchEvent(new CustomEvent('addTab', { detail: newTab }));
+    }
+  };
+
+  // 删除维度
+  const handleDeleteDimension = (dimensionId: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这个维度吗？删除后无法恢复。',
+      okText: '确定',
+      cancelText: '取消',
+      onOk: () => {
+        setDimensions(prev => prev.filter(d => d.id !== dimensionId));
+        message.success('删除成功');
+      }
+    });
+  };
+
+  // 批量删除
+  const handleBatchDelete = () => {
+    if (selectedDimensions.length === 0) {
+      message.warning('请先选择要删除的维度');
+      return;
+    }
+    
+    Modal.confirm({
+      title: '确认批量删除',
+      content: `确定要删除选中的 ${selectedDimensions.length} 个维度吗？删除后无法恢复。`,
+      okText: '确定',
+      cancelText: '取消',
+      onOk: () => {
+        setDimensions(prev => prev.filter(d => !selectedDimensions.includes(d.id)));
+        setSelectedDimensions([]);
+        message.success('批量删除成功');
+      }
+    });
+  };
+
+  // 处理维度选择
+  const handleDimensionSelect = (dimensionId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedDimensions(prev => [...prev, dimensionId]);
+    } else {
+      setSelectedDimensions(prev => prev.filter(id => id !== dimensionId));
+    }
+  };
+
+  // 全选/取消全选
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedDimensions(filteredDimensions.map(d => d.id));
+    } else {
+      setSelectedDimensions([]);
+    }
+  };
+
+  // 处理分页变化
+  const handlePaginationChange = (page: number, pageSize: number) => {
+    setPagination(prev => ({
+      ...prev,
+      current: page,
+      pageSize: pageSize
+    }));
+    // 清空当前页的选择状态
+    setSelectedDimensions([]);
+  };
+
+  return (
+    <div className="h-full bg-white rounded flex mx-5 mt-5 mb-5" style={{ height: 'calc(100vh - 130px)' }}>
+      {/* 左侧目录树 */}
+      <div className="w-[280px] flex-shrink-0 p-5">
+        <div className="h-full flex flex-col">
+          <h3 className="text-lg font-medium text-gray-800 mb-3">维度分类</h3>
+          {/* 树查询框 */}
+          <Input
+            placeholder="搜索分类"
+            className="mb-3"
+            allowClear
+          />
+          <Button type="dashed" icon={<PlusOutlined />} size="small" block className="mb-3">
+            新增分类
+          </Button>
+          <div className="flex-1 overflow-auto">
+            <Tree
+              showIcon
+              defaultExpandAll
+              selectedKeys={[selectedCategory]}
+              treeData={buildTreeData()}
+              onSelect={(keys) => {
+                if (keys.length > 0) {
+                  setSelectedCategory(keys[0] as string);
+                }
+              }}
+              showLine
+              className="custom-tree text-sm"
+            />
+          </div>
+          
+          {/* 树组件自定义样式 */}
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              .custom-tree .ant-tree-treenode {
+                height: 40px !important;
+                display: flex !important;
+                align-items: center !important;
+                font-size: 14px !important;
+                color: #223355 !important;
+              }
+              .custom-tree .ant-tree-node-content-wrapper {
+                height: 40px !important;
+                line-height: 40px !important;
+                display: flex !important;
+                align-items: center !important;
+                padding: 0 8px !important;
+                border-radius: 4px !important;
+              }
+              .custom-tree .ant-tree-node-selected .ant-tree-node-content-wrapper {
+                background-color: #F0F9FF !important;
+                color: #3388FF !important;
+                width: 240px !important;
+                height: 40px !important;
+                margin-left: 0px !important;
+              }
+              .custom-tree .ant-tree-title {
+                color: inherit !important;
+                font-size: 14px !important;
+                font-weight: 400 !important;
+              }
+              .custom-tree .ant-tree-switcher {
+                color: #6B7A99 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+              }
+              .custom-tree .ant-tree-iconEle {
+                color: #6B7A99 !important;
+                display: flex !important;
+                align-items: center !important;
+                margin-right: 8px !important;
+              }
+            `
+          }} />
+        </div>
+      </div>
+
+      {/* 分隔线 */}
+      <div className="w-px bg-[#E9ECF2] flex-shrink-0" />
+
+      {/* 右侧内容区 */}
+       <div className="flex-1 flex flex-col min-w-0">
+          {/* 查询条件区 */}
+          <div className="p-5 border-b border-[#E9ECF2] flex-shrink-0">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              {/* 第一行：默认显示的查询条件 */}
+              <div className="flex items-center space-x-4 flex-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600 whitespace-nowrap">维度名称:</span>
+                  <Input
+                    placeholder="请输入维度名称"
+                    value={searchForm.name}
+                    onChange={(e) => setSearchForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-48"
+                    allowClear
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600 whitespace-nowrap">维度描述:</span>
+                  <Input
+                    placeholder="请输入维度描述"
+                    value={searchForm.description}
+                    onChange={(e) => setSearchForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-48"
+                    allowClear
+                  />
+                </div>
+                
+                {/* 按钮组 */}
+                <div className="flex items-center space-x-2 ml-auto mr-5">
+                  <Button 
+                    type="link" 
+                    onClick={() => setExpanded(!expanded)}
+                    className="px-0"
+                  >
+                    {expanded ? '收起' : '展开'}
+                  </Button>
+                  <Button icon={<ReloadOutlined />} onClick={handleReset}>
+                    重置
+                  </Button>
+                  <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} loading={loading}>
+                    查询
+                  </Button>
+                </div>
+              </div>
+              
+              {/* 展开后显示的查询条件 */}
+              {expanded && (
+                <div className="w-full flex items-center space-x-4 mt-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600 whitespace-nowrap">创建时间:</span>
+                    <RangePicker
+                      value={searchForm.dateRange}
+                      onChange={(dates) => setSearchForm(prev => ({ ...prev, dateRange: dates }))}
+                      className="w-64"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600 whitespace-nowrap">创建人:</span>
+                    <Input
+                      placeholder="请输入创建人"
+                      value={searchForm.creator}
+                      onChange={(e) => setSearchForm(prev => ({ ...prev, creator: e.target.value }))}
+                      className="w-32"
+                      allowClear
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 操作栏 */}
+          <div className="px-5 py-5 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Checkbox
+                  checked={selectedDimensions.length === filteredDimensions.length && filteredDimensions.length > 0}
+                  indeterminate={selectedDimensions.length > 0 && selectedDimensions.length < filteredDimensions.length}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                >
+                  全选
+                </Checkbox>
+                <span className="text-sm text-gray-500">
+                  已选择 {selectedDimensions.length} 项，共 {filteredDimensions.length} 项
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleAddDimension}>
+                  新增维度
+                </Button>
+                <Button 
+                  danger 
+                  icon={<DeleteOutlined />}
+                  disabled={selectedDimensions.length === 0}
+                  onClick={handleBatchDelete}
+                >
+                  删除
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* 维度列表 */}
+          <div className="flex-1 px-5 pb-5 flex flex-col min-h-0">
+            {allFilteredDimensions.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <Empty description="暂无维度数据" />
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 mb-4 overflow-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {filteredDimensions.map((dimension, index) => (
+                      <Card
+                        key={dimension.id}
+                        className={cn(
+                          "dimension-card cursor-pointer hover:shadow-md transition-shadow",
+                          selectedDimensions.includes(dimension.id) && "ring-2 ring-blue-500"
+                        )}
+                        onClick={() => handleEditDimension(dimension.id)}
+                        actions={[
+                          <EditOutlined key="edit" onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditDimension(dimension.id);
+                          }} />,
+                          <DeleteOutlined key="delete" onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteDimension(dimension.id);
+                          }} />
+                        ]}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={selectedDimensions.includes(dimension.id)}
+                              onChange={(e) => handleDimensionSelect(dimension.id, e.target.checked)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <span className="text-sm text-gray-500">#{(pagination.current - 1) * pagination.pageSize + index + 1}</span>
+                          </div>
+                        </div>
+                        
+                        <Card.Meta
+                          title={dimension.name}
+                          description={
+                            <div>
+                              <p className="text-gray-600 mb-2">{dimension.description || '暂无描述'}</p>
+                              <div className="space-y-1 text-xs text-gray-500">
+                                <div className="flex justify-between">
+                                  <span>分类:</span>
+                                  <span className="text-blue-600">{getCategoryPath(dimension.categoryId)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>创建时间:</span>
+                                  <span>{dimension.createdAt}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>创建人:</span>
+                                  <span>{dimension.createdBy}</span>
+                                </div>
+                              </div>
+                            </div>
+                          }
+                        />
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* 翻页器 */}
+                <div className="flex justify-end flex-shrink-0">
+                  <Pagination
+                    current={pagination.current}
+                    pageSize={pagination.pageSize}
+                    total={pagination.total}
+                    showSizeChanger
+                    showQuickJumper
+                    showTotal={(total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`}
+                    pageSizeOptions={['10', '20', '50', '100']}
+                    onChange={handlePaginationChange}
+                    onShowSizeChange={handlePaginationChange}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+  );
+};
+
+export default DimensionManagement;
