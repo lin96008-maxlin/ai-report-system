@@ -117,7 +117,6 @@ const Sidebar: React.FC = () => {
         icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
         onClick={() => setCollapsed(!collapsed)}
         className="absolute bottom-4 left-2 w-8 h-8 flex items-center justify-center text-gray-600 hover:opacity-80"
-        style={{ ':hover': { color: '#3388FF' } }}
         onMouseEnter={(e) => e.currentTarget.style.color = '#3388FF'}
         onMouseLeave={(e) => e.currentTarget.style.color = ''}
       />

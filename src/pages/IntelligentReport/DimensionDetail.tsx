@@ -4,9 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, DragOutlined, EyeOutlined, 
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   DndContext,
-  closestCenter,
   closestCorners,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -14,12 +12,10 @@ import {
   DragOverEvent,
   DragStartEvent,
   DragOverlay,
-  defaultDropAnimationSideEffects,
   DropAnimation,
 } from '@dnd-kit/core';
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
@@ -225,7 +221,7 @@ const DimensionDetail: React.FC = () => {
     const overId = over.id as string;
 
     // 查找拖拽项及其父项
-    const { item: draggedItem, parent: draggedParent, parentArray: draggedParentArray } = findItemAndParent(contentItems, activeId);
+    const { item: draggedItem } = findItemAndParent(contentItems, activeId);
     if (!draggedItem) return;
 
     // 防止循环引用
@@ -256,7 +252,7 @@ const DimensionDetail: React.FC = () => {
     let newContentItems = removeFromTree([...contentItems], activeId);
 
     // 查找目标项及其父项
-    const { item: targetItem, parent: targetParent, parentArray: targetParentArray } = findItemAndParent(newContentItems, overId);
+    const { item: targetItem } = findItemAndParent(newContentItems, overId);
 
     // 检查拖拽项是否有下级卡片
     const hasChildren = draggedItem.children && draggedItem.children.length > 0;
@@ -358,16 +354,6 @@ const DimensionDetail: React.FC = () => {
   const dropAnimation: DropAnimation = {
     duration: 0,
     easing: 'ease',
-    sideEffects: {
-      // 完全禁用拖拽动画效果，避免布局变化
-      transform: {
-        scaleX: 1,
-        scaleY: 1,
-      },
-      opacity: {
-        finalValue: 1,
-      },
-    },
   };
 
   // 新增一级内容
@@ -540,7 +526,7 @@ ${dimensionDescription}
   };
 
   // 可拖拽的内容项组件
-  const SortableContentItem: React.FC<{ item: ContentItem; index?: number }> = ({ item, index }) => {
+  const SortableContentItem: React.FC<{ item: ContentItem; index?: number }> = ({ item }) => {
     const {
       attributes,
       listeners,
@@ -577,7 +563,11 @@ ${dimensionDescription}
     return (
       <div
         ref={setNodeRef}
-        style={style}
+        style={{
+          ...style,
+          touchAction: 'none',
+          ...(isDragging || (activeId && overId === item.id) ? { '--tw-ring-color': '#3388FF' } : {})
+        }}
         {...attributes} 
         {...listeners} 
         className={cn(
@@ -586,11 +576,6 @@ ${dimensionDescription}
           isDragging ? "ring-2 shadow-lg" : "hover:shadow-md",
           activeId && overId === item.id ? "ring-2" : ""
         )}
-        style={{ 
-          touchAction: 'none',
-          ...(isDragging ? { '--tw-ring-color': '#3388FF' } : {}),
-          ...(activeId && overId === item.id ? { '--tw-ring-color': '#3388FF' } : {})
-        }}
       >
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 flex-1 select-none">
@@ -642,8 +627,8 @@ ${dimensionDescription}
         {/* 渲染子内容 - 始终渲染子内容区域，即使没有子项，以便支持拖拽到此处 */}
         <div className="ml-6 mt-3 space-y-2 min-h-[20px]">
           {item.children && item.children.length > 0 ? (
-            item.children.map((child, childIndex) => (
-              <SortableContentItem key={child.id} item={child} index={childIndex} />
+            item.children.map((child) => (
+              <SortableContentItem key={child.id} item={child} />
             ))
           ) : (
             // 空子内容区域，用于接收拖拽，但不显示提示文字
@@ -655,10 +640,10 @@ ${dimensionDescription}
   };
 
   // 渲染内容项
-  const renderContentItem = (item: ContentItem, index: number) => {
+  const renderContentItem = (item: ContentItem) => {
     return (
       <div key={item.id} className="relative">
-        <SortableContentItem item={item} index={index} />
+        <SortableContentItem item={item} />
       </div>
     );
   };
@@ -736,7 +721,7 @@ ${dimensionDescription}
                   >
                     <SortableContext items={getAllItems(contentItems).map(item => item.id)} strategy={verticalListSortingStrategy}>
                       <div className="space-y-3 min-h-[200px]">
-                        {contentItems.map((item, index) => renderContentItem(item, index))}
+                        {contentItems.map((item) => renderContentItem(item))}
                       </div>
                     </SortableContext>
                     
