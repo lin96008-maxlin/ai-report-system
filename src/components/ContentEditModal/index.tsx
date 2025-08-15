@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Input, Select, DatePicker, Button, Tag, message } from 'antd';
-import { InsertRowBelowOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Modal, Input, Select, DatePicker, Button, Tag, message, Tabs, Switch } from 'antd';
+import { InsertRowBelowOutlined, FileTextOutlined, BarChartOutlined, FolderOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -13,12 +14,15 @@ interface ContentEditModalProps {
   mode: 'add' | 'edit';
   parent_id?: string;
   level: 1 | 2 | 3;
+  onInsertDimension?: (dimension: any) => void;
+  onInsertMetric?: (metric: any) => void;
 }
 
 interface ContentFormData {
   id?: string;
   title: string;
   content: string;
+  workOrderEnabled: boolean;
   workOrderFilters: {
     reportTimeStart?: string;
     reportTimeEnd?: string;
@@ -29,31 +33,52 @@ interface ContentFormData {
   };
 }
 
-// 预设的数据指标列表
+// 预设的数据指标列表（与系统中的DataIndicator类型保持一致）
 const DATA_INDICATORS = [
-  { key: '工单总量', label: '工单总量', category: '基础指标' },
-  { key: '环比增长率', label: '环比增长率', category: '基础指标' },
-  { key: '同比增长率', label: '同比增长率', category: '基础指标' },
-  { key: '微信工单数', label: '微信工单数', category: '来源分析' },
-  { key: '电话工单数', label: '电话工单数', category: '来源分析' },
-  { key: '网络工单数', label: '网络工单数', category: '来源分析' },
-  { key: '平均处理时长', label: '平均处理时长', category: '效率指标' },
-  { key: '满意度评分', label: '满意度评分', category: '效率指标' },
-  { key: '及时处理率', label: '及时处理率', category: '效率指标' },
-  { key: '主要问题类型', label: '主要问题类型', category: '问题分析' },
-  { key: '占比百分比', label: '占比百分比', category: '问题分析' },
-  { key: '趋势描述', label: '趋势描述', category: '趋势分析' },
-  { key: '预测数据', label: '预测数据', category: '趋势分析' }
+  { key: '工单总量', label: '工单总量', category: '基础指标', description: '统计时间段内的工单总数量' },
+  { key: '环比增长率', label: '环比增长率', category: '基础指标', description: '与上一周期相比的增长率' },
+  { key: '同比增长率', label: '同比增长率', category: '基础指标', description: '与去年同期相比的增长率' },
+  { key: '微信工单数', label: '微信工单数', category: '来源分析', description: '通过微信渠道提交的工单数量' },
+  { key: '电话工单数', label: '电话工单数', category: '来源分析', description: '通过电话渠道提交的工单数量' },
+  { key: '网络工单数', label: '网络工单数', category: '来源分析', description: '通过网络平台提交的工单数量' },
+  { key: '平均处理时长', label: '平均处理时长', category: '效率指标', description: '工单从提交到处理完成的平均时间' },
+  { key: '满意度评分', label: '满意度评分', category: '效率指标', description: '用户对工单处理结果的满意度评分' },
+  { key: '及时处理率', label: '及时处理率', category: '效率指标', description: '在规定时间内处理完成的工单比例' },
+  { key: '主要问题类型', label: '主要问题类型', category: '问题分析', description: '工单中出现频率最高的问题类型' },
+  { key: '占比百分比', label: '占比百分比', category: '问题分析', description: '各类问题在总工单中的占比' },
+  { key: '趋势描述', label: '趋势描述', category: '趋势分析', description: '工单数量或质量的变化趋势描述' },
+  { key: '预测数据', label: '预测数据', category: '趋势分析', description: '基于历史数据预测的未来趋势' }
 ];
 
-// 按分类分组指标
-const INDICATOR_CATEGORIES = DATA_INDICATORS.reduce((acc, indicator) => {
-  if (!acc[indicator.category]) {
-    acc[indicator.category] = [];
-  }
-  acc[indicator.category].push(indicator);
-  return acc;
-}, {} as Record<string, typeof DATA_INDICATORS>);
+// 预设的报告维度列表（与DimensionManagement中的mockDimensions保持一致）
+const REPORT_DIMENSIONS = [
+  { key: '工单总体概况分析', label: '工单总体概况分析', category: '基础分析', description: '对工单总体情况进行分析，包括数量、趋势等' },
+  { key: '处置效率分析', label: '处置效率分析', category: '效率分析', description: '分析各处置单位的工单处理效率和质量' },
+  { key: '问题分类统计', label: '问题分类统计', category: '分类分析', description: '按问题类型对工单进行分类统计分析' },
+  { key: '满意度分析', label: '满意度分析', category: '基础分析', description: '分析用户对工单处理结果的满意度情况' }
+];
+
+// 按分类分组指标（使用函数避免重复计算）
+const getIndicatorCategories = () => {
+  return DATA_INDICATORS.reduce((acc, indicator) => {
+    if (!acc[indicator.category]) {
+      acc[indicator.category] = [];
+    }
+    acc[indicator.category].push(indicator);
+    return acc;
+  }, {} as Record<string, typeof DATA_INDICATORS>);
+};
+
+// 按分类分组维度（使用函数避免重复计算）
+const getDimensionCategories = () => {
+  return REPORT_DIMENSIONS.reduce((acc, dimension) => {
+    if (!acc[dimension.category]) {
+      acc[dimension.category] = [];
+    }
+    acc[dimension.category].push(dimension);
+    return acc;
+  }, {} as Record<string, typeof REPORT_DIMENSIONS>);
+};
 
 const ContentEditModal: React.FC<ContentEditModalProps> = ({
   visible,
@@ -61,11 +86,14 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
   onSave,
   editData,
   mode,
-  level
+  level,
+  onInsertDimension,
+  onInsertMetric
 }) => {
   const [formData, setFormData] = useState<ContentFormData>({
     title: '',
     content: '',
+    workOrderEnabled: false,
     workOrderFilters: {
       appealSource: [],
       region: [],
@@ -74,9 +102,46 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
     }
   });
   const [loading, setLoading] = useState(false);
+  // 移除activeTab状态，直接显示数据指标
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const textAreaRef = useRef<any>(null);
+
+  // 监听开关状态变化，仅在开关切换时处理"查看关联工单"文字
+  useEffect(() => {
+    const workOrderText = '\n\n查看关联工单（点击后超链反查工单列表）';
+    
+    if (formData.workOrderEnabled) {
+      // 开关开启时，如果内容末尾没有"查看关联工单"文字，则添加
+      if (!formData.content.endsWith(workOrderText)) {
+        setFormData(prev => ({
+          ...prev,
+          content: prev.content + workOrderText
+        }));
+      }
+    } else {
+      // 开关关闭时，如果内容末尾有"查看关联工单"文字，则移除
+      if (formData.content.endsWith(workOrderText)) {
+        setFormData(prev => ({
+          ...prev,
+          content: prev.content.slice(0, -workOrderText.length)
+        }));
+      }
+    }
+  }, [formData.workOrderEnabled]); // 仅监听开关状态变化
+
+  // 使用useMemo缓存数据分组，避免重复计算和数据混乱
+  const indicatorCategories = useMemo(() => getIndicatorCategories(), []);
+  const dimensionCategories = useMemo(() => getDimensionCategories(), []);
 
   useEffect(() => {
     if (visible) {
+      // 初始化所有分类为展开状态
+      const initialExpanded: Record<string, boolean> = {};
+      Object.keys(indicatorCategories).forEach(category => {
+        initialExpanded[category] = true;
+      });
+      setExpandedCategories(initialExpanded);
+      
       if (mode === 'edit' && editData) {
         setFormData(editData);
       } else {
@@ -84,6 +149,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
         setFormData({
           title: '',
           content: '',
+          workOrderEnabled: false,
           workOrderFilters: {
             appealSource: [],
             region: [],
@@ -93,7 +159,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
         });
       }
     }
-  }, [visible, mode, editData]);
+  }, [visible, mode, editData, indicatorCategories]);
 
   const handleSave = async () => {
     if (!formData.title.trim()) {
@@ -103,6 +169,21 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
     if (!formData.content.trim()) {
       message.error('请输入章节内容');
       return;
+    }
+
+    // 校验关联工单配置
+    if (formData.workOrderEnabled) {
+      const { reportTimeStart, reportTimeEnd, appealSource, region, appealItem, appealTags } = formData.workOrderFilters;
+      const hasTimeFilter = reportTimeStart && reportTimeEnd;
+      const hasSourceFilter = appealSource && appealSource.length > 0;
+      const hasRegionFilter = region && region.length > 0;
+      const hasItemFilter = appealItem && appealItem.length > 0;
+      const hasTagsFilter = appealTags && appealTags.length > 0;
+      
+      if (!hasTimeFilter && !hasSourceFilter && !hasRegionFilter && !hasItemFilter && !hasTagsFilter) {
+        message.error('开启关联工单配置时，必须设置至少一个过滤条件');
+        return;
+      }
     }
 
     setLoading(true);
@@ -120,12 +201,64 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
 
   const handleInsertIndicator = (indicator: string) => {
     const placeholder = `{{${indicator}}}`;
-    const newContent = formData.content + placeholder;
-    setFormData(prev => ({
-      ...prev,
-      content: newContent
-    }));
+    
+    // 获取TextArea的DOM元素和光标位置
+    if (textAreaRef.current && textAreaRef.current.resizableTextArea) {
+      const textArea = textAreaRef.current.resizableTextArea.textArea;
+      const cursorPosition = textArea.selectionStart;
+      
+      // 在光标位置插入指标
+      const currentContent = formData.content;
+      const newContent = currentContent.slice(0, cursorPosition) + placeholder + currentContent.slice(cursorPosition);
+      
+      setFormData(prev => ({
+        ...prev,
+        content: newContent
+      }));
+      
+      // 设置新的光标位置（在插入的指标之后）
+      setTimeout(() => {
+        const newCursorPosition = cursorPosition + placeholder.length;
+        textArea.setSelectionRange(newCursorPosition, newCursorPosition);
+        textArea.focus();
+      }, 0);
+    } else {
+      // 如果无法获取光标位置，则在末尾添加
+      const newContent = formData.content + placeholder;
+      setFormData(prev => ({
+        ...prev,
+        content: newContent
+      }));
+    }
+    
+    // 同时插入到报告正文中（如果提供了回调函数）
+    if (onInsertMetric) {
+      onInsertMetric({ title: indicator });
+    }
+    
     message.success(`已插入指标：${indicator}`);
+  };
+
+  // 处理报告维度插入
+  const handleInsertDimension = (dimensionName: string) => {
+    // 插入到报告正文中（如果提供了回调函数）
+    if (onInsertDimension) {
+      onInsertDimension({ 
+        name: dimensionName, 
+        description: `${dimensionName}相关内容`,
+        parent_id: null 
+      });
+    }
+    
+    message.success(`已插入报告维度：${dimensionName}`);
+  };
+
+  // 处理分类展开收起
+  const toggleCategoryExpanded = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
   };
 
   const getLevelText = () => {
@@ -143,7 +276,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
       title={
         <div className="flex items-center gap-2 border-b border-[#E9ECF2] px-4 py-0 h-14">
           <Tag color={getLevelColor()}>{getLevelText()}内容</Tag>
-          <span>{mode === 'add' ? '新增' : '编辑'}内容</span>
+          <span>{mode === 'add' ? '新增' : '编辑'}章节</span>
         </div>
       }
       open={visible}
@@ -179,41 +312,108 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
               className="h-10"
             />
           </div>
-          <div className="px-0 py-0 border-b border-[#E9ECF2]">
-            <h3 className="text-base font-medium text-[#223355] px-4 py-4">数据指标</h3>
+          <div className="px-4 py-4 border-b border-[#E9ECF2]">
+            <h3 className="text-sm font-medium text-[#223355]" style={{fontSize: '14px'}}>数据指标</h3>
           </div>
-          <div className="px-4 py-4 overflow-y-auto" style={{ height: 'calc(100vh - 300px)', maxHeight: '500px' }}>
-            {Object.entries(INDICATOR_CATEGORIES).map(([category, indicators]) => (
-              <div key={category} className="mb-6">
-                <div className="text-sm font-medium text-[#223355] mb-3">{category}</div>
-                <div className="space-y-2">
-                  {indicators.map(indicator => (
-                    <Button
-                      key={indicator.key}
-                      size="small"
-                      type="text"
-                      className="text-xs h-8 w-full justify-start text-left border border-[#E9ECF2] hover:border-[#3388FF] hover:text-[#3388FF] rounded"
-                      onClick={() => handleInsertIndicator(indicator.key)}
-                      icon={<InsertRowBelowOutlined />}
-                    >
-                      {indicator.label}
-                    </Button>
-                  ))}
+          <div className="px-4 py-4 overflow-y-auto" style={{ height: 'calc(80vh - 200px)', maxHeight: 'calc(80vh - 200px)' }}>
+            {/* 数据指标 */}
+             {Object.entries(indicatorCategories).map(([category, indicators]) => (
+                <div key={category} className="mb-6">
+                  <div 
+                    className="flex items-center justify-between mb-3 cursor-pointer"
+                    onClick={() => toggleCategoryExpanded(category)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FolderOutlined 
+                        style={{ 
+                          color: '#3388FF', 
+                          fontSize: '14px',
+                          minWidth: '14px'
+                        }} 
+                      />
+                      <span className="text-sm font-medium" style={{ color: '#1f2937', fontWeight: '500' }}>{category}</span>
+                    </div>
+                    {expandedCategories[category] ? (
+                      <DownOutlined 
+                        style={{ 
+                          color: '#6b7280', 
+                          fontSize: '10px',
+                          transition: 'transform 0.2s'
+                        }} 
+                      />
+                    ) : (
+                      <RightOutlined 
+                        style={{ 
+                          color: '#6b7280', 
+                          fontSize: '10px',
+                          transition: 'transform 0.2s'
+                        }} 
+                      />
+                    )}
+                  </div>
+                  {expandedCategories[category] && (
+                    <div className="space-y-1">
+                      {indicators.map(indicator => (
+                        <div
+                          key={indicator.key}
+                          className="flex items-center py-1 px-2 rounded-md cursor-pointer transition-all duration-200 group"
+                          style={{ 
+                            minHeight: '32px',
+                            lineHeight: '20px',
+                            margin: '1px 0',
+                            backgroundColor: 'transparent',
+                            border: '1px solid transparent',
+                            borderRadius: '6px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#F0F9FF';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                          onClick={() => handleInsertIndicator(indicator.key)}
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <BarChartOutlined 
+                              style={{ 
+                                color: '#3388FF', 
+                                fontSize: '12px',
+                                minWidth: '12px'
+                              }} 
+                            />
+                            <span 
+                              className="truncate text-sm" 
+                              style={{ 
+                                color: '#4b5563',
+                                fontWeight: '400'
+                              }}
+                              title={indicator.label}
+                            >
+                              {indicator.label}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
 
         {/* 中间 - 正文内容 */}
         <div className="flex-1 border-l border-r border-[#E9ECF2]">
           <div className="px-0 py-0 border-b border-[#E9ECF2]">
-            <h3 className="text-base font-medium text-[#223355] px-4 py-4">正文编辑</h3>
+            <h3 className="text-sm font-medium text-[#223355] px-4 py-4">模板编辑</h3>
           </div>
           <div className="px-4 py-4 flex flex-col" style={{ height: 'calc(100% - 60px)' }}>
             <Input.TextArea
+              ref={textAreaRef}
               value={formData.content}
-              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                setFormData(prev => ({ ...prev, content: newValue }));
+              }}
               placeholder="onlyoffice一直没法接入，只能先放一个普通的文本编辑器了"
               className="flex-1 resize-none"
               style={{ height: '100%' }}
@@ -224,16 +424,27 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
         {/* 右侧 - 关联工单配置 */}
         <div className="w-64">
           <div className="px-0 py-0 border-b border-[#E9ECF2]">
-            <h3 className="text-base font-medium text-[#223355] px-4 py-4">关联工单配置</h3>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h3 className="text-sm font-medium text-[#223355] m-0">关联工单配置</h3>
+              <Switch
+                size="small"
+                checked={formData.workOrderEnabled}
+                onChange={(checked) => setFormData(prev => ({
+                  ...prev,
+                  workOrderEnabled: checked
+                }))}
+              />
+            </div>
           </div>
-          <div className="px-4 py-4 space-y-4 overflow-y-auto" style={{ height: 'calc(100% - 60px)' }}>
+          {formData.workOrderEnabled && (
+            <div className="px-4 py-4 space-y-4 overflow-y-auto" style={{ height: 'calc(100% - 60px)' }}>
             <div>
               <label className="block text-sm font-medium text-[#223355] mb-2">上报时间</label>
               <RangePicker
                 size="middle"
                 className="w-full"
                 value={formData.workOrderFilters.reportTimeStart && formData.workOrderFilters.reportTimeEnd ? 
-                  [formData.workOrderFilters.reportTimeStart, formData.workOrderFilters.reportTimeEnd] as any : null}
+                  [dayjs(formData.workOrderFilters.reportTimeStart), dayjs(formData.workOrderFilters.reportTimeEnd)] : null}
                 onChange={(dates) => {
                   if (dates && dates.length === 2) {
                     setFormData(prev => ({
@@ -350,7 +561,15 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
                 这些过滤条件将在生成报告时用于筛选相关工单数据，帮助用户快速定位到与当前内容相关的具体工单信息。
               </div>
             </div>
-          </div>
+            </div>
+          )}
+          {!formData.workOrderEnabled && (
+            <div className="px-4 py-4">
+              <div className="text-sm text-[#6B7A99] leading-relaxed">
+                关联工单配置已关闭。该内容在最终生成报告时，不可以反查关联工单。
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Modal>

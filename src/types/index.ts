@@ -83,6 +83,7 @@ export interface TabItem {
   label: string;
   closable: boolean;
   path: string;
+  state?: any;
 }
 
 // 数据指标类型
@@ -92,4 +93,60 @@ export interface DataIndicator {
   placeholder: string;
   category: string;
   description?: string;
+}
+
+// 报告模板相关类型
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  type: '日报' | '周报' | '月报' | '季报' | '半年报' | '年报' | '专题报告';
+  content_structure: ReportTemplateContentStructure;
+  is_published: boolean;
+  created_at: string;
+  created_by: string;
+  updated_at?: string;
+  updated_by?: string;
+}
+
+export interface ReportTemplateContentStructure {
+  rich_text_content: string;
+  embedded_dimensions: EmbeddedDimension[];
+}
+
+export interface EmbeddedDimension {
+  dimension_id: string;
+  position: number;
+  associated_work_order_configs: AssociatedWorkOrderConfig[];
+}
+
+export interface AssociatedWorkOrderConfig {
+  content_name: string;
+  content_text_preview?: string;
+  filters: WorkOrderFilters;
+}
+
+export interface WorkOrderFilters {
+  report_time_start?: string;
+  report_time_end?: string;
+  appeal_source?: string[];
+  region?: string[];
+  appeal_item?: string[];
+  appeal_tags?: string[];
+}
+
+export interface ReportTemplateQuery {
+  name?: string;
+  description?: string;
+  type?: string[];
+  created_by?: string;
+  is_published?: boolean;
+}
+
+export interface PreviewFilters {
+  report_time_start?: string;
+  report_time_end?: string;
+  appeal_source?: string[];
+  region?: string[];
+  appeal_item?: string[];
 }

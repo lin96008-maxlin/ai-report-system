@@ -54,7 +54,7 @@ const Sidebar: React.FC = () => {
       },
       'report-template-management': {
         path: '/intelligent-report/report-template-management',
-        label: '报告模板管理'
+        label: '模板管理'
       },
       'dimension-management': {
         path: '/intelligent-report/dimension-management',
@@ -80,6 +80,11 @@ const Sidebar: React.FC = () => {
 
   // 获取当前选中的菜单项
   const getCurrentMenuKey = () => {
+    // 优先使用location.state中的activeMenuKey
+    if (location.state?.activeMenuKey) {
+      return location.state.activeMenuKey;
+    }
+    
     const pathMap: Record<string, string> = {
       '/intelligent-report/report-management': 'report-management',
       '/intelligent-report/report-template-management': 'report-template-management',
@@ -87,7 +92,17 @@ const Sidebar: React.FC = () => {
       '/intelligent-report/analysis-repository': 'analysis-repository'
     };
     
-    return pathMap[location.pathname] || 'dimension-management';
+    // 检查路径是否匹配模板编辑页面
+    if (location.pathname.includes('/intelligent-report/report-template-edit')) {
+      return 'report-template-management';
+    }
+    
+    // 检查路径是否匹配维度详情页面
+    if (location.pathname.includes('/intelligent-report/dimension-detail')) {
+      return 'dimension-management';
+    }
+    
+    return pathMap[location.pathname] || '';
   };
 
   return (

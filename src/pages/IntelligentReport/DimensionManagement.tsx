@@ -98,11 +98,70 @@ const DimensionManagement: React.FC = () => {
   ];
 
   useEffect(() => {
-    setCategories(mockCategories);
-    setDimensions(mockDimensions);
-    // 初始化展开所有节点
-    const allCategoryIds = mockCategories.map(cat => cat.id);
-    setExpandedKeys(['all', ...allCategoryIds]);
+    // 检查localStorage中是否已有分类数据
+    const savedCategories = localStorage.getItem('dimensionCategories');
+    if (savedCategories) {
+      try {
+        const parsedCategories = JSON.parse(savedCategories);
+        setCategories(parsedCategories);
+        // 初始化展开所有节点
+        const allCategoryIds = parsedCategories.map((cat: DimensionCategory) => cat.id);
+        setExpandedKeys(['all', ...allCategoryIds]);
+      } catch (error) {
+        console.error('Failed to parse categories from localStorage:', error);
+        // 如果解析失败，使用mock数据并保存到localStorage
+        setCategories(mockCategories);
+        localStorage.setItem('dimensionCategories', JSON.stringify(mockCategories));
+        const allCategoryIds = mockCategories.map(cat => cat.id);
+        setExpandedKeys(['all', ...allCategoryIds]);
+      }
+    } else {
+      // 如果localStorage中没有数据，使用mock数据并保存
+      setCategories(mockCategories);
+      localStorage.setItem('dimensionCategories', JSON.stringify(mockCategories));
+      const allCategoryIds = mockCategories.map(cat => cat.id);
+      setExpandedKeys(['all', ...allCategoryIds]);
+    }
+    
+    // 检查localStorage中是否已有维度数据
+    const savedDimensions = localStorage.getItem('dimensions');
+    if (savedDimensions) {
+      try {
+        const parsedDimensions = JSON.parse(savedDimensions);
+        setDimensions(parsedDimensions);
+      } catch (error) {
+        console.error('Failed to parse dimensions from localStorage:', error);
+        // 如果解析失败，使用mock数据并保存到localStorage
+        setDimensions(mockDimensions);
+        localStorage.setItem('dimensions', JSON.stringify(mockDimensions));
+      }
+    } else {
+      // 如果localStorage中没有数据，使用mock数据并保存
+      setDimensions(mockDimensions);
+      localStorage.setItem('dimensions', JSON.stringify(mockDimensions));
+    }
+  }, []);
+
+  // 监听维度更新事件
+  useEffect(() => {
+    const handleDimensionsUpdated = () => {
+      // 从localStorage重新加载维度数据
+      const savedDimensions = localStorage.getItem('dimensions');
+      if (savedDimensions) {
+        try {
+          const parsedDimensions = JSON.parse(savedDimensions);
+          setDimensions(parsedDimensions);
+        } catch (error) {
+          console.error('Failed to parse dimensions from localStorage:', error);
+        }
+      }
+    };
+
+    window.addEventListener('dimensionsUpdated', handleDimensionsUpdated);
+    
+    return () => {
+      window.removeEventListener('dimensionsUpdated', handleDimensionsUpdated);
+    };
   }, []);
 
   // 构建树形数据
@@ -128,7 +187,7 @@ const DimensionManagement: React.FC = () => {
                   <Button 
                     type="text" 
                     size="small" 
-                    icon={<EditOutlined />}
+                    icon={<EditOutlined style={{ color: '#3388FF' }} />}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleEditCategory(cat);
@@ -148,12 +207,12 @@ const DimensionManagement: React.FC = () => {
                   <Button 
                     type="text" 
                     size="small" 
-                    icon={<DeleteOutlined />}
+                    icon={<DeleteOutlined style={{ color: '#FF4433' }} />}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteCategory(cat.id);
                     }}
-                    className="text-xs p-1 h-6 w-6 text-red-500 hover:text-red-600"
+                    className="text-xs p-1 h-6 w-6"
                   />
                 </div>
               </div>
@@ -181,7 +240,7 @@ const DimensionManagement: React.FC = () => {
                   <Button 
                     type="text" 
                     size="small" 
-                    icon={<EditOutlined />}
+                    icon={<EditOutlined style={{ color: '#3388FF' }} />}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleEditCategory(cat);
@@ -201,12 +260,12 @@ const DimensionManagement: React.FC = () => {
                   <Button 
                     type="text" 
                     size="small" 
-                    icon={<DeleteOutlined />}
+                    icon={<DeleteOutlined style={{ color: '#FF4433' }} />}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteCategory(cat.id);
                     }}
-                    className="text-xs p-1 h-6 w-6 text-red-500 hover:text-red-600"
+                    className="text-xs p-1 h-6 w-6"
                   />
                 </div>
               </div>
@@ -260,6 +319,24 @@ const DimensionManagement: React.FC = () => {
       return parentPath ? `${parentPath}/${category.name}` : category.name;
     }
     return category.name;
+  };
+
+  // 格式化时间
+  const formatDateTime = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString; // 如果无法解析，返回原字符串
+      }
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    } catch (error) {
+      return dateString; // 出错时返回原字符串
+    }
   };
 
   // 过滤维度数据
@@ -333,12 +410,12 @@ const DimensionManagement: React.FC = () => {
 
   // 新增维度
   const handleAddDimension = () => {
-    // 在新页签中打开维度新增页
+    // 在新页签中打开维度新增页，传递选中的分类信息
     const newTab = {
       key: 'dimension-detail-new',
       label: '新增维度',
       closable: true,
-      path: '/intelligent-report/dimension-detail'
+      path: `/intelligent-report/dimension-detail${selectedCategory !== 'all' ? `?category=${selectedCategory}` : ''}`
     };
     
     // 通过全局状态管理添加新页签
@@ -352,7 +429,7 @@ const DimensionManagement: React.FC = () => {
       // 在新页签中打开维度详情页
       const newTab = {
         key: `dimension-detail-${dimension.id}`,
-        label: '编辑维度',
+        label: `编辑维度 - ${dimension.name}`,
         closable: true,
         path: `/intelligent-report/dimension-detail/${dimension.id}`
       };
@@ -471,15 +548,24 @@ const DimensionManagement: React.FC = () => {
       cancelText: '取消',
       onOk: () => {
         // 删除分类及其子分类
-        const deleteRecursive = (id: string) => {
-          const children = categories.filter(cat => cat.parent_id === id);
-          children.forEach(child => deleteRecursive(child.id));
-          setCategories(prev => prev.filter(cat => cat.id !== id));
+        const deleteRecursive = (id: string, categoriesList: DimensionCategory[]) => {
+          const children = categoriesList.filter(cat => cat.parent_id === id);
+          children.forEach(child => deleteRecursive(child.id, categoriesList));
+          return categoriesList.filter(cat => cat.id !== id);
         };
-        deleteRecursive(categoryId);
+        const updatedCategories = deleteRecursive(categoryId, categories);
+        setCategories(updatedCategories);
+        
+        // 保存到localStorage
+        localStorage.setItem('dimensionCategories', JSON.stringify(updatedCategories));
+        
+        // 触发分类更新事件
+        window.dispatchEvent(new CustomEvent('categoriesUpdated'));
         
         // 删除该分类下的所有维度
-        setDimensions(prev => prev.filter(dim => dim.category_id !== categoryId));
+        const updatedDimensions = dimensions.filter(dim => dim.category_id !== categoryId);
+        setDimensions(updatedDimensions);
+        localStorage.setItem('dimensions', JSON.stringify(updatedDimensions));
         
         // 如果删除的是当前选中的分类，重置为全部
         if (selectedCategory === categoryId) {
@@ -499,11 +585,19 @@ const DimensionManagement: React.FC = () => {
 
     if (categoryModalMode === 'edit' && currentCategory) {
       // 编辑分类
-      setCategories(prev => prev.map(cat => 
+      const updatedCategories = categories.map(cat => 
         cat.id === currentCategory.id 
           ? { ...cat, name: categoryForm.name, description: categoryForm.description }
           : cat
-      ));
+      );
+      setCategories(updatedCategories);
+      
+      // 保存到localStorage
+      localStorage.setItem('dimensionCategories', JSON.stringify(updatedCategories));
+      
+      // 触发分类更新事件
+      window.dispatchEvent(new CustomEvent('categoriesUpdated'));
+      
       message.success('分类编辑成功');
     } else {
       // 新增分类
@@ -515,7 +609,14 @@ const DimensionManagement: React.FC = () => {
         created_at: new Date().toISOString().split('T')[0],
         created_by: '当前用户'
       };
-      setCategories(prev => [...prev, newCategory]);
+      const updatedCategories = [...categories, newCategory];
+      setCategories(updatedCategories);
+      
+      // 保存到localStorage
+      localStorage.setItem('dimensionCategories', JSON.stringify(updatedCategories));
+      
+      // 触发分类更新事件
+      window.dispatchEvent(new CustomEvent('categoriesUpdated'));
       
       // 自动展开父分类节点和新分类节点
       const keysToExpand = ['all', newCategory.id];
@@ -840,11 +941,11 @@ const DimensionManagement: React.FC = () => {
                         style={selectedDimensions.includes(dimension.id) ? { borderColor: '#3388FF' } : {}}
                         onClick={() => handleEditDimension(dimension.id)}
                         actions={[
-                          <EditOutlined key="edit" onClick={(e) => {
+                          <EditOutlined key="edit" style={{ color: '#3388FF' }} onClick={(e) => {
                             e.stopPropagation();
                             handleEditDimension(dimension.id);
                           }} />,
-                          <DeleteOutlined key="delete" onClick={(e) => {
+                          <DeleteOutlined key="delete" style={{ color: '#FF4433' }} onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteDimension(dimension.id);
                           }} />
@@ -878,7 +979,7 @@ const DimensionManagement: React.FC = () => {
                                 </div>
                                 <div className="flex justify-between">
                                   <span>创建时间:</span>
-                                  <span>{dimension.created_at}</span>
+                                  <span>{formatDateTime(dimension.created_at)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span>创建人:</span>
@@ -927,9 +1028,11 @@ const DimensionManagement: React.FC = () => {
         width={500}
         centered
         style={{ padding: 20, margin: 0 }}
-        bodyStyle={{ padding: 0, margin: 0 }}
+        styles={{
+          body: { padding: 0, margin: 0 },
+          mask: { backgroundColor: 'rgba(0, 0, 0, 0.45)' }
+        }}
         wrapClassName="!p-0 !m-0"
-        maskStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.45)' }}
         footer={
           <div className="border-t border-[#E9ECF2]">
             <div className="flex justify-end gap-2 px-4 py-3">

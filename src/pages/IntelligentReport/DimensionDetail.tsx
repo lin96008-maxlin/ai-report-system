@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Select, DatePicker, message, Modal, Empty, Tag } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, DragOutlined, EyeOutlined, EyeInvisibleOutlined, PlayCircleOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Button, Input, Select, TreeSelect, DatePicker, message, Modal, Empty, Tag } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, DragOutlined, EyeOutlined, EyeInvisibleOutlined, PlayCircleOutlined, DownOutlined, UpOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   DndContext,
   closestCorners,
@@ -22,8 +22,9 @@ import {
 import {
   CSS,
 } from '@dnd-kit/utilities';
-// import { Level1Content, Level2Content, Level3Content } from '@/types';
+
 import { cn } from '@/utils';
+import { useAppStore } from '@/store';
 import ContentEditModal from '@/components/ContentEditModal';
 
 const { RangePicker } = DatePicker;
@@ -39,13 +40,115 @@ interface ContentItem {
   level: 1 | 2 | 3;
   parent_id?: string;
   children?: ContentItem[];
+  workOrderEnabled?: boolean;
+  workOrderFilters?: {
+    reportTimeStart?: string;
+    reportTimeEnd?: string;
+    appealSource: string[];
+    region: string[];
+    appealItem: string[];
+    appealTags: string[];
+  };
 }
 
 const DimensionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [dimensionName, setDimensionName] = useState('工单总体概况分析');
-  const [dimensionDescription, setDimensionDescription] = useState('对工单总体情况进行分析，包括数量、趋势等');
+  const location = useLocation();
+  const { removeTab, setSelectedMenuKey } = useAppStore();
+  const [dimensionName, setDimensionName] = useState('');
+  const [dimensionCategory, setDimensionCategory] = useState('');
+  const [dimensionDescription, setDimensionDescription] = useState('');
+
+  // 从localStorage获取最新分类数据
+  const [categories, setCategories] = useState<Array<{
+    id: string;
+    name: string;
+    parent_id?: string;
+    description?: string;
+    created_at?: string;
+    created_by?: string;
+  }>>([]);
+
+  // 加载分类数据
+  useEffect(() => {
+    // 获取URL参数中的分类信息
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryId = urlParams.get('category');
+
+    const loadCategories = () => {
+      try {
+        const storedCategories = JSON.parse(localStorage.getItem('dimensionCategories') || '[]');
+        setCategories(storedCategories);
+        
+        // 如果有分类ID参数且是新增模式，设置默认分类
+        if (!id && categoryId && storedCategories.some((cat: any) => cat.id === categoryId)) {
+          setDimensionCategory(categoryId);
+        }
+      } catch (error) {
+        console.error('加载分类数据失败:', error);
+        setCategories([]);
+      }
+    };
+
+    // 初始加载
+    loadCategories();
+
+    // 监听分类更新事件
+    const handleCategoriesUpdate = () => {
+      loadCategories();
+    };
+
+    window.addEventListener('categoriesUpdated', handleCategoriesUpdate);
+    return () => {
+      window.removeEventListener('categoriesUpdated', handleCategoriesUpdate);
+    };
+  }, [id]);
+
+  // 将分类数据转换为TreeSelect格式
+  const buildTreeData = (categories: typeof categories) => {
+    const categoryMap = new Map();
+    const rootCategories: any[] = [];
+
+    // 创建所有节点
+    categories.forEach(category => {
+      categoryMap.set(category.id, {
+        value: category.id,
+        title: category.name,
+        key: category.id,
+        children: []
+      });
+    });
+
+    // 构建树结构
+    categories.forEach(category => {
+      const node = categoryMap.get(category.id);
+      if (category.parent_id) {
+        const parent = categoryMap.get(category.parent_id);
+        if (parent) {
+          parent.children.push(node);
+        }
+      } else {
+        rootCategories.push(node);
+      }
+    });
+
+    return rootCategories;
+  };
+
+  const treeData = buildTreeData(categories);
+
+  // 获取分类路径
+  const getCategoryPath = (categoryId: string): string => {
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return '';
+    
+    if (category.parent_id) {
+      const parentPath = getCategoryPath(category.parent_id);
+      return parentPath ? `${parentPath}/${category.name}` : category.name;
+    }
+    return category.name;
+  };
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewFilters, setPreviewFilters] = useState({
@@ -75,7 +178,63 @@ const DimensionDetail: React.FC = () => {
 
   // 获取页面标题
   const getPageTitle = () => {
-    return id ? `编辑维度 - ${dimensionName}` : '新增维度';
+    return id ? '编辑维度' : '新增维度';
+  };
+
+  // 返回列表
+  const handleBack = () => {
+    // 获取当前页签的key，与DimensionManagement中创建的key保持一致
+    const currentTabKey = id ? `dimension-detail-${id}` : 'dimension-detail-new';
+    
+    // 关闭当前页签
+    removeTab(currentTabKey);
+    
+    // 检查是否有指定的返回路径和activeMenuKey
+    const returnPath = location.state?.returnPath;
+    const activeMenuKey = location.state?.activeMenuKey;
+    
+    if (returnPath) {
+      // 如果有返回路径，导航到指定页面
+      navigate(returnPath);
+      
+      // 如果有activeMenuKey，设置正确的侧边栏选中状态
+      if (activeMenuKey) {
+        setSelectedMenuKey(activeMenuKey);
+        
+        // 动态更新页签名称
+        const { tabs, updateTab } = useAppStore.getState();
+        const targetTabKey = activeMenuKey;
+        const existingTab = tabs.find(t => t.key === targetTabKey);
+        
+        if (existingTab) {
+          let newLabel = '';
+          switch (activeMenuKey) {
+            case 'dimension-management':
+              newLabel = '维度管理';
+              break;
+            case 'report-template-management':
+              newLabel = '模板管理';
+              break;
+            default:
+              newLabel = existingTab.label;
+          }
+          updateTab(targetTabKey, { label: newLabel });
+        }
+      }
+    } else {
+      // 默认导航到维度管理页面
+      navigate('/intelligent-report/dimension-management');
+      setSelectedMenuKey('dimension-management');
+      
+      // 动态更新维度管理页签名称
+      const { tabs, updateTab } = useAppStore.getState();
+      const dimensionTabKey = 'dimension-management';
+      const existingTab = tabs.find(t => t.key === dimensionTabKey);
+      
+      if (existingTab) {
+        updateTab(dimensionTabKey, { label: '维度管理' });
+      }
+    }
   };
 
   // 保存维度
@@ -85,9 +244,49 @@ const DimensionDetail: React.FC = () => {
       return;
     }
     
-    // 这里可以添加保存维度的API调用逻辑
-    message.success('维度保存成功');
-    navigate('/intelligent-report/dimension-management');
+    if (!dimensionCategory) {
+      message.error('请选择所属分类');
+      return;
+    }
+    
+    // 构建维度数据
+    const dimensionData = {
+      id: id || Date.now().toString(),
+      name: dimensionName,
+      category_id: dimensionCategory,
+      description: dimensionDescription,
+      content_items: contentItems,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // 模拟API调用保存维度
+    try {
+      // 获取现有维度列表
+      const existingDimensions = JSON.parse(localStorage.getItem('dimensions') || '[]');
+      
+      if (id) {
+        // 编辑模式：更新现有维度
+        const index = existingDimensions.findIndex((d: any) => d.id === id);
+        if (index !== -1) {
+          existingDimensions[index] = { ...existingDimensions[index], ...dimensionData };
+        }
+      } else {
+        // 新增模式：添加新维度
+        existingDimensions.push(dimensionData);
+      }
+      
+      // 保存到localStorage
+      localStorage.setItem('dimensions', JSON.stringify(existingDimensions));
+      
+      // 触发维度列表刷新事件
+      window.dispatchEvent(new CustomEvent('dimensionsUpdated'));
+      
+      message.success('维度保存成功');
+      handleBack();
+    } catch (error) {
+      message.error('保存失败，请重试');
+    }
   };
 
   // 模拟数据
@@ -140,12 +339,42 @@ const DimensionDetail: React.FC = () => {
   useEffect(() => {
     if (id) {
       // 编辑模式，加载现有数据
-      setContentItems(mockContentItems);
+      try {
+        const existingDimensions = JSON.parse(localStorage.getItem('dimensions') || '[]');
+        const currentDimension = existingDimensions.find((d: any) => d.id === id);
+        
+        if (currentDimension) {
+          setDimensionName(currentDimension.name || '');
+          setDimensionCategory(currentDimension.category_id || currentDimension.category || '');
+          setDimensionDescription(currentDimension.description || '');
+          setContentItems(currentDimension.content_items || mockContentItems);
+        } else {
+          // 如果找不到对应维度，使用默认数据
+          setContentItems(mockContentItems);
+        }
+      } catch (error) {
+        console.error('加载维度数据失败:', error);
+        setContentItems(mockContentItems);
+      }
     } else {
       // 新增模式，初始化空数据
-      setContentItems([]);
+      const selectedText = location.state?.selectedText;
+      if (selectedText) {
+        // 如果有选中的文字，自动创建一级内容
+        const newContentItem: ContentItem = {
+          id: Date.now().toString(),
+          title: selectedText.length > 20 ? selectedText.substring(0, 20) + '...' : selectedText,
+          content: selectedText,
+          order: 1,
+          level: 1,
+          children: []
+        };
+        setContentItems([newContentItem]);
+      } else {
+        setContentItems([]);
+      }
     }
-  }, [id]);
+  }, [id, location.state]);
 
   // 获取所有项目的扁平化列表，用于拖拽
   const getAllItems = (items: ContentItem[]): ContentItem[] => {
@@ -408,7 +637,9 @@ const DimensionDetail: React.FC = () => {
         order: 1,
         level: editLevel,
         parent_id: editParentId,
-        children: []
+        children: [],
+        workOrderEnabled: formData.workOrderEnabled,
+        workOrderFilters: formData.workOrderFilters
       };
 
       if (editParentId) {
@@ -443,7 +674,9 @@ const DimensionDetail: React.FC = () => {
             return {
               ...item,
               title: formData.title,
-              content: formData.content
+              content: formData.content,
+              workOrderEnabled: formData.workOrderEnabled,
+              workOrderFilters: formData.workOrderFilters
             };
           }
           if (item.children) {
@@ -490,6 +723,50 @@ const DimensionDetail: React.FC = () => {
         message.success('删除成功');
       }
     });
+  };
+
+  // 在光标位置插入维度内容到报告正文
+  const insertDimensionContent = (dimension: any) => {
+    let content = '';
+    if (dimension.parent_id) {
+      // 子维度，插入二级标题格式
+      content = `\n\n## ${dimension.name}\n\n${dimension.description}\n\n`;
+    } else {
+      // 父维度，插入一级标题格式
+      content = `\n\n# ${dimension.name}\n\n${dimension.description}\n\n`;
+    }
+    
+    const textarea = document.querySelector('textarea[placeholder="请输入报告正文内容，可使用 {{变量名}} 格式插入数据指标"]') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentValue = textarea.value;
+      const newValue = currentValue.substring(0, start) + content + currentValue.substring(end);
+      textarea.value = newValue;
+      textarea.focus();
+      textarea.setSelectionRange(start + content.length, start + content.length);
+      // 触发change事件以更新状态
+      const event = new Event('input', { bubbles: true });
+      textarea.dispatchEvent(event);
+    }
+  };
+
+  // 在光标位置插入指标占位符到报告正文
+  const insertMetricPlaceholder = (metric: any) => {
+    const placeholder = `{{${metric.title}}}`;
+    const textarea = document.querySelector('textarea[placeholder="请输入报告正文内容，可使用 {{变量名}} 格式插入数据指标"]') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentValue = textarea.value;
+      const newValue = currentValue.substring(0, start) + placeholder + currentValue.substring(end);
+      textarea.value = newValue;
+      textarea.focus();
+      textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+      // 触发change事件以更新状态
+      const event = new Event('input', { bubbles: true });
+      textarea.dispatchEvent(event);
+    }
   };
 
   // 生成预览
@@ -656,13 +933,20 @@ ${dimensionDescription}
         {/* 页面标题栏 */}
         <div className="p-5 border-b border-[#E9ECF2]">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-medium text-[#223355] m-0">{getPageTitle()}</h2>
+            <div className="flex items-center gap-3">
+              <ArrowLeftOutlined 
+                className="text-[#223355] cursor-pointer hover:text-[#3388FF] transition-colors" 
+                style={{fontSize: '16px'}}
+                onClick={handleBack}
+              />
+              <h2 className="font-medium text-[#223355] m-0" style={{fontSize: '18px'}}>{getPageTitle()}</h2>
+            </div>
             <div className="flex gap-2">
-              <Button onClick={() => navigate('/intelligent-report/dimension-management')}>
-                返回
+              <Button onClick={handleBack}>
+                取消
               </Button>
               <Button type="primary" onClick={handleSaveDimension}>
-                {id ? '保存' : '创建'}
+                保存
               </Button>
             </div>
           </div>
@@ -671,10 +955,10 @@ ${dimensionDescription}
         {/* 内容区域 */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* 维度基本信息 */}
-          <div className="p-5 border-b border-[#E9ECF2]">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-[#223355] whitespace-nowrap">
+          <div className="py-5 border-b border-[#E9ECF2]" style={{ paddingLeft: '20px', paddingRight: '20px' }}>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3 flex-1">
+                <label className="font-medium text-[#223355] whitespace-nowrap" style={{fontSize: '14px'}}>
                   <span className="text-red-500 mr-1">*</span>维度名称
                 </label>
                 <Input
@@ -682,14 +966,32 @@ ${dimensionDescription}
                   onChange={(e) => setDimensionName(e.target.value)}
                   placeholder="请输入维度名称"
                   required
+                  className="flex-1"
                 />
               </div>
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-[#223355] whitespace-nowrap">维度描述</label>
+              <div className="flex items-center gap-3 flex-1">
+                <label className="font-medium text-[#223355] whitespace-nowrap" style={{fontSize: '14px'}}>
+                  <span className="text-red-500 mr-1">*</span>所属分类
+                </label>
+                <TreeSelect
+                  value={dimensionCategory}
+                  onChange={(value) => setDimensionCategory(value)}
+                  placeholder="请选择所属分类"
+                  className="flex-1"
+                  showSearch
+                  treeNodeFilterProp="title"
+                  treeData={treeData}
+                  allowClear
+                  required
+                />
+              </div>
+              <div className="flex items-center gap-3 flex-1">
+                <label className="font-medium text-[#223355] whitespace-nowrap" style={{fontSize: '14px'}}>维度描述</label>
                 <Input
                   value={dimensionDescription}
                   onChange={(e) => setDimensionDescription(e.target.value)}
                   placeholder="请输入维度描述"
+                  className="flex-1"
                 />
               </div>
             </div>
@@ -700,10 +1002,10 @@ ${dimensionDescription}
             {/* 左侧内容树形卡片 */}
             <div className="flex-1 flex flex-col border-r border-[#E9ECF2] overflow-hidden">
               <div className="px-5 py-4 border-b border-[#E9ECF2] flex items-center justify-between">
-                <h3 className="text-lg font-medium text-[#223355] m-0">内容结构</h3>
+                <h3 className="font-medium text-[#223355] m-0" style={{fontSize: '14px'}}>章节结构</h3>
                 <Button type="primary" icon={<PlusOutlined />} onClick={handleAddLevel1Content}>
-                  新增一级内容
-                </Button>
+                    新增一级章节
+                  </Button>
               </div>
               <div className="flex-1 p-5 overflow-auto">
                 {contentItems.length === 0 ? (
@@ -871,7 +1173,7 @@ ${dimensionDescription}
             )}>
               {previewVisible && (
                 <div className="px-5 py-4 border-b border-[#E9ECF2] flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-[#223355] m-0">预览</h3>
+                  <h3 className="text-sm font-medium text-[#223355] m-0">预览</h3>
                   <div className="flex gap-2">
 
                     <Button
@@ -1009,9 +1311,9 @@ ${dimensionDescription}
           editData={currentEditItem ? {
             id: currentEditItem.id,
             title: currentEditItem.title,
-            // description: '',
             content: currentEditItem.content,
-            workOrderFilters: {
+            workOrderEnabled: currentEditItem.workOrderEnabled || false,
+            workOrderFilters: currentEditItem.workOrderFilters || {
               appealSource: [],
               region: [],
               appealItem: [],
@@ -1021,6 +1323,8 @@ ${dimensionDescription}
           mode={editMode}
           parent_id={editParentId}
           level={editLevel}
+          onInsertDimension={insertDimensionContent}
+          onInsertMetric={insertMetricPlaceholder}
         />
       </div>
     </div>

@@ -1,0 +1,133 @@
+/* 报告维度/数据指标 Tab 样式 */
+.dimension-metric-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+  height: 48px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.dimension-metric-tabs .ant-tabs-tab {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  margin: 0 16px 0 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  border-radius: 0;
+}
+
+.dimension-metric-tabs .ant-tabs-tab-active {
+  border-bottom-color: #3388FF;
+  color: #3388FF;
+}
+
+.dimension-metric-tabs .ant-tabs-tab:hover {
+  color: #3388FF;
+}
+
+.dimension-metric-tabs .ant-tabs-ink-bar {
+  display: none;
+}
+
+.dimension-metric-tabs .ant-tabs-nav-wrap {
+  border-bottom: none;
+}
+
+.dimension-metric-tabs .ant-tabs-nav::before {
+  display: none;
+}
+
+.dimension-metric-tabs .ant-tabs-content-holder {
+  border-top: none;
+}
+
+/* 报告编辑/关联工单 Tab 样式 */
+.report-edit-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+  height: 48px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.report-edit-tabs .ant-tabs-tab {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  margin: 0 16px 0 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  border-radius: 0;
+  position: relative;
+  min-width: fit-content;
+}
+
+.report-edit-tabs .ant-tabs-tab-active {
+  border-bottom-color: #3388FF;
+  color: #3388FF;
+}
+
+.report-edit-tabs .ant-tabs-tab:hover {
+  color: #3388FF;
+}
+
+.report-edit-tabs .ant-tabs-ink-bar {
+  display: none;
+}
+
+.report-edit-tabs .ant-tabs-nav-wrap {
+  border-bottom: none;
+}
+
+.report-edit-tabs .ant-tabs-nav::before {
+  display: none;
+}
+
+.report-edit-tabs .ant-tabs-content-holder {
+  border-top: none;
+}
+
+.report-edit-tabs .ant-tabs-tab + .ant-tabs-tab {
+  margin-left: 0;
+}
+
+/* 维度和指标树样式 */
+.dimension-tree,
+.metric-tree {
+  background: transparent;
+}
+
+.dimension-tree .ant-tree-treenode,
+.metric-tree .ant-tree-treenode {
+  padding: 0;
+  margin: 2px 0;
+}
+
+.dimension-tree .ant-tree-node-content-wrapper,
+.metric-tree .ant-tree-node-content-wrapper {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: none;
+}
+
+/* 移除悬浮背景覆盖，允许自定义悬浮效果显示 */
+
+.dimension-tree .ant-tree-node-selected .ant-tree-node-content-wrapper,
+.metric-tree .ant-tree-node-selected .ant-tree-node-content-wrapper {
+  background: transparent;
+}
+
+.dimension-tree .ant-tree-switcher,
+.metric-tree .ant-tree-switcher {
+  width: 16px;
+  height: 32px;
+  line-height: 32px;
+  margin-right: 4px;
+}
+
+.dimension-tree .ant-tree-indent-unit,
+.metric-tree .ant-tree-indent-unit {
+  width: 16px;
+}

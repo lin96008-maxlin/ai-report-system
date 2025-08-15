@@ -15,6 +15,7 @@ interface AppState {
   activeTabKey: string;
   addTab: (tab: TabItem) => void;
   removeTab: (key: string) => void;
+  updateTab: (key: string, updates: Partial<TabItem>) => void;
   setActiveTab: (key: string) => void;
   
   // 当前用户
@@ -31,19 +32,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setCollapsed: (collapsed) => set({ collapsed }),
   
   // 菜单状态
-  selectedMenuKey: 'dimension-management',
+  selectedMenuKey: '',
   setSelectedMenuKey: (key) => set({ selectedMenuKey: key }),
   
   // 页签状态
-  tabs: [
-    {
-      key: 'dimension-management',
-      label: '维度管理',
-      closable: true,
-      path: '/intelligent-report/dimension-management'
-    }
-  ],
-  activeTabKey: 'dimension-management',
+  tabs: [],
+  activeTabKey: '',
   
   addTab: (tab) => {
     const { tabs } = get();
@@ -65,6 +59,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     
     set({ tabs: newTabs, activeTabKey: newActiveKey });
+  },
+  
+  updateTab: (key, updates) => {
+    const { tabs } = get();
+    const updatedTabs = tabs.map(tab => 
+      tab.key === key ? { ...tab, ...updates } : tab
+    );
+    set({ tabs: updatedTabs });
   },
   
   setActiveTab: (key) => set({ activeTabKey: key }),

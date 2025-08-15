@@ -17,8 +17,8 @@ const TabsNavigation: React.FC = () => {
       // 添加新页签（store会自动检查是否已存在）
       addTab(newTab);
       
-      // 更新路由
-      navigate(newTab.path);
+      // 更新路由，传递state参数
+      navigate(newTab.path, { state: newTab.state });
     };
     
     window.addEventListener('addTab', handleAddTab as EventListener);
@@ -32,7 +32,7 @@ const TabsNavigation: React.FC = () => {
     setActiveTab(key);
     const tab = tabs.find(t => t.key === key);
     if (tab) {
-      navigate(tab.path);
+      navigate(tab.path, { state: tab.state });
     }
   };
 
@@ -47,7 +47,7 @@ const TabsNavigation: React.FC = () => {
           const remainingTabs = tabs.filter(t => t.key !== targetKey);
           if (remainingTabs.length > 0) {
             const newActiveTab = remainingTabs[remainingTabs.length - 1];
-            navigate(newActiveTab.path);
+            navigate(newActiveTab.path, { state: newActiveTab.state });
           }
         }
       }

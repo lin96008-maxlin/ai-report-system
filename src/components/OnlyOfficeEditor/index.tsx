@@ -1,22 +1,74 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { message } from 'antd';
+import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
+import { message, Button, Space, Card } from 'antd';
 
 interface OnlyOfficeEditorProps {
   content?: string;
   onChange?: (content: string) => void;
   height?: number;
   placeholder?: string;
+  onInsertPlaceholder?: (placeholder: string) => void;
+  mode?: 'edit' | 'view';
+  toolbarHeight?: number;
 }
 
-const OnlyOfficeEditor: React.FC<OnlyOfficeEditorProps> = ({
+export interface OnlyOfficeEditorRef {
+  insertText: (text: string) => void;
+  getContent: () => Promise<string>;
+  setContent: (content: string) => void;
+  focus: () => void;
+}
+
+const OnlyOfficeEditor = forwardRef<OnlyOfficeEditorRef, OnlyOfficeEditorProps>(({
   content = '',
   onChange,
-  height = 400,
-  placeholder = '请输入内容...'
-}) => {
+  height = 500,
+  placeholder = '请输入内容...',
+  onInsertPlaceholder,
+  mode = 'edit',
+  toolbarHeight = 40
+}, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
   const [editorInstance, setEditorInstance] = useState<any>(null);
+  const [simpleContent, setSimpleContent] = useState(content);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 暴露给父组件的方法
+  useImperativeHandle(ref, () => ({
+    insertText: (text: string) => {
+      if (editorInstance && (window as any).DocsAPI) {
+        // OnlyOffice 插入文本逻辑
+        insertTextToEditor(text);
+      } else {
+        // 简化编辑器插入文本
+        insertTextToTextarea(text);
+      }
+    },
+    getContent: async () => {
+      if (editorInstance && (window as any).DocsAPI) {
+        return getEditorContent();
+      } else {
+        return simpleContent;
+      }
+    },
+    setContent: (newContent: string) => {
+      if (editorInstance && (window as any).DocsAPI) {
+        updateEditorContent(newContent);
+      } else {
+        setSimpleContent(newContent);
+        onChange?.(newContent);
+      }
+    },
+    focus: () => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }
+  }));
+
+  useEffect(() => {
+    setSimpleContent(content);
+  }, [content]);
 
   useEffect(() => {
     // 检查OnlyOffice是否已加载
@@ -170,37 +222,114 @@ const OnlyOfficeEditor: React.FC<OnlyOfficeEditorProps> = ({
     });
   };
 
+  const insertTextToTextarea = (text: string) => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newContent = 
+        simpleContent.substring(0, start) +
+        text +
+        simpleContent.substring(end);
+      
+      setSimpleContent(newContent);
+      onChange?.(newContent);
+      
+      // 恢复光标位置
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + text.length, start + text.length);
+      }, 0);
+    }
+  };
 
+  const insertTextToEditor = (text: string) => {
+    if (editorInstance) {
+      try {
+        // 模拟OnlyOffice插入文本
+        console.log('Inserting text to OnlyOffice:', text);
+      } catch (error) {
+        console.warn('Error inserting text:', error);
+      }
+    }
+  };
 
-  // 如果OnlyOffice未加载或加载失败，显示简单的文本编辑器
+  // 渲染占位符工具栏
+  const renderPlaceholderToolbar = () => {
+    const placeholders = [
+      { key: 'indicator', label: '数据指标', placeholder: '{indicator_name}' },
+      { key: 'dimension', label: '维度', placeholder: '{dimension_name}' },
+      { key: 'date', label: '日期', placeholder: '{report_date}' },
+      { key: 'workorder', label: '工单号', placeholder: '{work_order_no}' },
+      { key: 'total', label: '总计', placeholder: '{total_value}' },
+    ];
+
+    return (
+      <div className="bg-gray-50 p-2 border-b border-gray-300">
+        <Space size="small">
+          <span className="text-sm text-gray-600">插入占位符:</span>
+          {placeholders.map(item => (
+            <Button
+              key={item.key}
+              size="small"
+              type="text"
+              onClick={() => {
+                if (onInsertPlaceholder) {
+                  onInsertPlaceholder(item.placeholder);
+                } else {
+                  insertTextToTextarea(item.placeholder);
+                }
+              }}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </Space>
+      </div>
+    );
+  };
+
+  // 如果OnlyOffice未加载或加载失败，显示功能完整的简化编辑器
   if (!isReady || !(window as any).DocsAPI) {
     return (
-      <div className="border border-gray-300 rounded">
-        <div className="bg-gray-50 p-2 border-b border-gray-300 text-sm text-gray-600">
-          OnlyOffice编辑器加载中... (当前显示简化版本)
+      <Card className="w-full" bodyStyle={{ padding: 0 }}>
+        {renderPlaceholderToolbar()}
+        <div className="border border-gray-300 rounded-b">
+          <textarea
+            ref={textareaRef}
+            className="w-full p-3 border-0 resize-none focus:outline-none"
+            style={{ height: `${height - 80}px` }}
+            value={simpleContent}
+            onChange={(e) => {
+              setSimpleContent(e.target.value);
+              onChange?.(e.target.value);
+            }}
+            placeholder={placeholder}
+            readOnly={mode === 'view'}
+          />
         </div>
-        <textarea
-          className="w-full p-3 border-0 resize-none focus:outline-none"
-          style={{ height: `${height - 40}px` }}
-          value={content}
-          onChange={(e) => onChange?.(e.target.value)}
-          placeholder={placeholder}
-        />
-      </div>
+      </Card>
     );
   }
 
   return (
     <div className="onlyoffice-editor-container">
+      {renderPlaceholderToolbar()}
       <div ref={editorRef} style={{ height: `${height}px` }} />
     </div>
   );
-};
+});
+
+OnlyOfficeEditor.displayName = 'OnlyOfficeEditor';
 
 // 导出插入指标的方法，供外部组件使用
+export const insertPlaceholder = (placeholder: string) => {
+  // 这个方法可以被外部组件调用
+  return placeholder;
+};
+
+export default OnlyOfficeEditor;
 export const insertIndicatorToEditor = (indicator: string) => {
   // 这个方法可以被外部组件调用来插入数据指标
   console.log('Insert indicator:', indicator);
 };
-
-export default OnlyOfficeEditor;
