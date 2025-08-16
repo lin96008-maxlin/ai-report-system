@@ -451,7 +451,12 @@ const DimensionManagement: React.FC = () => {
       okText: '确定',
       cancelText: '取消',
       onOk: () => {
-        setDimensions(prev => prev.filter(d => d.id !== dimensionId));
+        const updatedDimensions = dimensions.filter(d => d.id !== dimensionId);
+        setDimensions(updatedDimensions);
+        // 更新localStorage
+        localStorage.setItem('dimensions', JSON.stringify(updatedDimensions));
+        // 触发维度更新事件
+        window.dispatchEvent(new CustomEvent('dimensionsUpdated'));
         message.success('删除成功');
       }
     });
@@ -474,7 +479,12 @@ const DimensionManagement: React.FC = () => {
       okText: '确定',
       cancelText: '取消',
       onOk: () => {
-        setDimensions(prev => prev.filter(d => !selectedDimensions.includes(d.id)));
+        const updatedDimensions = dimensions.filter(d => !selectedDimensions.includes(d.id));
+        setDimensions(updatedDimensions);
+        // 更新localStorage
+        localStorage.setItem('dimensions', JSON.stringify(updatedDimensions));
+        // 触发维度更新事件
+        window.dispatchEvent(new CustomEvent('dimensionsUpdated'));
         setSelectedDimensions([]);
         message.success('批量删除成功');
       }

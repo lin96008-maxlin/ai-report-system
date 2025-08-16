@@ -241,11 +241,25 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
 
   // 处理报告维度插入
   const handleInsertDimension = (dimensionName: string) => {
-    // 插入到报告正文中（如果提供了回调函数）
-    if (onInsertDimension) {
+    // 从localStorage获取完整的维度数据
+    const dimensionsData = JSON.parse(localStorage.getItem('dimensions') || '[]');
+    const fullDimension = dimensionsData.find((dim: any) => dim.name === dimensionName);
+    
+    if (fullDimension && onInsertDimension) {
+      // 传递完整的维度数据，包括content_items
+      onInsertDimension({
+        ...fullDimension,
+        name: dimensionName,
+        description: fullDimension.description || `${dimensionName}相关内容`,
+        content_items: fullDimension.content_items || [],
+        parent_id: null
+      });
+    } else if (onInsertDimension) {
+      // 如果没有找到完整数据，使用基本信息
       onInsertDimension({ 
         name: dimensionName, 
         description: `${dimensionName}相关内容`,
+        content_items: [],
         parent_id: null 
       });
     }
@@ -275,7 +289,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
     <Modal
       title={
         <div className="flex items-center gap-2 border-b border-[#E9ECF2] px-4 py-0 h-14">
-          <Tag color={getLevelColor()}>{getLevelText()}内容</Tag>
+          <Tag color={getLevelColor()}>{getLevelText()}章节</Tag>
           <span>{mode === 'add' ? '新增' : '编辑'}章节</span>
         </div>
       }
@@ -284,9 +298,11 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
       width={1600}
       centered
       style={{ padding: 20, margin: 0 }}
-      bodyStyle={{ height: 'calc(80vh - 40px)', padding: 20, margin: 0 }}
+      styles={{
+        body: { height: 'calc(80vh - 40px)', padding: 20, margin: 0 },
+        mask: { backgroundColor: 'rgba(0, 0, 0, 0.45)' }
+      }}
       wrapClassName="!p-0 !m-0"
-      maskStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.45)' }}
       footer={
         <div className="border-t border-[#E9ECF2]">
           <div className="flex justify-end gap-2 px-4 py-3">

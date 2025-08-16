@@ -57,20 +57,18 @@ const DraggableRow = ({ index, moveRow, className, style, ...restProps }: any) =
       {...attributes}
     >
       {React.Children.map(restProps.children, (child, childIndex) => {
-        if (childIndex === 0) {
-          // 在第一列添加拖拽图标
+        if (childIndex === 1) {
+          // 第二列为拖拽列，显示拖拽图标
           return React.cloneElement(child, {
             children: (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <HolderOutlined
-                  style={{ cursor: 'grab', color: '#999' }}
-                  {...listeners}
-                />
-                {child.props.children}
-              </div>
+              <HolderOutlined
+                style={{ cursor: 'grab', color: '#999' }}
+                {...listeners}
+              />
             ),
           });
         }
+        // 其他列保持原样，包括第一列的复选框
         return child;
       })}
     </tr>
@@ -135,6 +133,7 @@ const ReportTemplateEdit: React.FC = () => {
   
   // 关联工单相关状态
   const [relatedTickets, setRelatedTickets] = useState<any[]>([]);
+  const [filteredTickets, setFilteredTickets] = useState<any[]>([]);
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const [ticketSearchForm] = Form.useForm();
   const [ticketQueryParams, setTicketQueryParams] = useState({
@@ -154,6 +153,34 @@ const ReportTemplateEdit: React.FC = () => {
   const [appealsData, setAppealsData] = useState<any[]>([]);
   const [appealsSearchForm] = Form.useForm();
   const [appealsLoading, setAppealsLoading] = useState(false);
+  
+  // 动态宽度计算
+  const [leftContentWidth, setLeftContentWidth] = useState<number>(0);
+  
+  // 计算左侧内容区宽度
+  const calculateLeftContentWidth = () => {
+    const containerElement = document.querySelector('.h-full.bg-white.rounded.flex.mx-5.mt-5');
+    const previewElement = document.querySelector('[data-preview-area]');
+    
+    if (containerElement) {
+      const containerWidth = containerElement.clientWidth;
+      const previewWidth = previewVisible && previewElement ? previewElement.clientWidth : 0;
+      const newLeftContentWidth = containerWidth - previewWidth - 40; // 减去padding等
+      setLeftContentWidth(newLeftContentWidth);
+    }
+  };
+  
+  // 监听预览区变化
+  useEffect(() => {
+    calculateLeftContentWidth();
+    
+    const handleResize = () => {
+      calculateLeftContentWidth();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [previewVisible]);
   
   // 拖拽传感器
   const sensors = useSensors(
@@ -196,8 +223,34 @@ const ReportTemplateEdit: React.FC = () => {
   const handleTicketSearch = () => {
     const values = ticketSearchForm.getFieldsValue();
     setTicketQueryParams(values);
-    // TODO: 实际查询逻辑
-    console.log('查询关联工单:', values);
+    
+    // 实现实际查询逻辑
+    let filteredTickets = [...relatedTickets];
+    
+    // 按章节名称筛选
+    if (values.sectionName && values.sectionName.trim()) {
+      filteredTickets = filteredTickets.filter(ticket => 
+        ticket.sectionName && ticket.sectionName.toLowerCase().includes(values.sectionName.toLowerCase().trim())
+      );
+    }
+    
+    // 按章节内容筛选
+    if (values.sectionContent && values.sectionContent.trim()) {
+      filteredTickets = filteredTickets.filter(ticket => 
+        ticket.sectionContent && ticket.sectionContent.toLowerCase().includes(values.sectionContent.toLowerCase().trim())
+      );
+    }
+    
+    // 按章节级别筛选
+    if (values.sectionLevel) {
+      filteredTickets = filteredTickets.filter(ticket => 
+        ticket.sectionLevel === values.sectionLevel
+      );
+    }
+    
+    // 更新显示的数据
+    setFilteredTickets(filteredTickets);
+    console.log('查询关联工单:', values, '筛选结果:', filteredTickets);
   };
   
   // 关联工单重置
@@ -208,6 +261,7 @@ const ReportTemplateEdit: React.FC = () => {
       sectionContent: '',
       sectionLevel: ''
     });
+    setFilteredTickets(relatedTickets); // 重置为显示所有数据
   };
   
   // 批量删除关联工单
@@ -236,11 +290,26 @@ const ReportTemplateEdit: React.FC = () => {
   // 编辑关联工单
   const handleEditTicket = (record: any) => {
     setEditingTicket(record);
+    
+    // 处理维度过滤条件
+    const workOrderFilters = record.workOrderFilters || {};
+    
     editFilterForm.setFieldsValue({
       sectionName: record.sectionName,
       sectionContent: record.sectionContent,
       sectionLevel: record.sectionLevel,
-      filterConditions: record.filterConditions || ''
+      filterConditions: record.filterConditions || '',
+      remark: record.remark || '',
+      // 带入维度内容设置的过滤条件
+      reportTime: workOrderFilters.reportTimeStart && workOrderFilters.reportTimeEnd ? 
+        [workOrderFilters.reportTimeStart, workOrderFilters.reportTimeEnd] : undefined,
+      appealSource: workOrderFilters.appealSource && workOrderFilters.appealSource.length > 0 ? 
+        workOrderFilters.appealSource[0] : undefined,
+      belongArea: workOrderFilters.region && workOrderFilters.region.length > 0 ? 
+        workOrderFilters.region[0] : undefined,
+      appealMatter: workOrderFilters.appealItem && workOrderFilters.appealItem.length > 0 ? 
+        workOrderFilters.appealItem[0] : undefined,
+      appealTags: workOrderFilters.appealTags || []
     });
     setEditFilterVisible(true);
   };
@@ -252,8 +321,22 @@ const ReportTemplateEdit: React.FC = () => {
       const updatedTickets = relatedTickets.map(ticket => 
         ticket.id === editingTicket.id 
           ? { 
-              ...ticket, 
-              ...values,
+              ...ticket,
+              sectionName: values.sectionName,
+              sectionContent: values.sectionContent,
+              sectionLevel: values.sectionLevel,
+              filterConditions: values.filterConditions || '',
+              remark: values.remark || '',
+              // 更新workOrderFilters结构
+              workOrderFilters: {
+                ...ticket.workOrderFilters,
+                reportTimeStart: values.reportTime && values.reportTime[0] ? values.reportTime[0] : '',
+                reportTimeEnd: values.reportTime && values.reportTime[1] ? values.reportTime[1] : '',
+                appealSource: values.appealSource ? [values.appealSource] : [],
+                region: values.belongArea ? [values.belongArea] : [],
+                appealItem: values.appealMatter ? [values.appealMatter] : [],
+                appealTags: values.appealTags || []
+              },
               // 数据隔离：更新版本和时间戳，确保数据变更可追踪
               updatedAt: new Date().toISOString(),
               version: (ticket.version || 1) + 1
@@ -471,14 +554,8 @@ const ReportTemplateEdit: React.FC = () => {
     }
   };
 
-  // 加载模板数据和维度指标数据
-  useEffect(() => {
-    // 设置当前选中的菜单项为报告模板管理
-    setSelectedMenuKey('report-template-management');
-    
-    // 页签已由ReportTemplateManagement创建，这里不需要重复创建
-    
-    // 从localStorage加载维度数据
+  // 加载维度数据的函数
+  const loadDimensionsData = () => {
     try {
       const savedDimensions = localStorage.getItem('dimensions');
       if (savedDimensions) {
@@ -489,6 +566,17 @@ const ReportTemplateEdit: React.FC = () => {
     } catch (error) {
       console.error('加载维度数据失败:', error);
     }
+  };
+
+  // 加载模板数据和维度指标数据
+  useEffect(() => {
+    // 设置当前选中的菜单项为报告模板管理
+    setSelectedMenuKey('report-template-management');
+    
+    // 页签已由ReportTemplateManagement创建，这里不需要重复创建
+    
+    // 从localStorage加载维度数据
+    loadDimensionsData();
 
     // 从localStorage加载指标数据
     try {
@@ -563,6 +651,25 @@ const ReportTemplateEdit: React.FC = () => {
       });
     }
   }, [id, form, setSelectedMenuKey]);
+
+  // 监听维度更新事件
+  useEffect(() => {
+    const handleDimensionsUpdated = () => {
+      // 重新加载维度数据
+      loadDimensionsData();
+    };
+
+    window.addEventListener('dimensionsUpdated', handleDimensionsUpdated);
+    
+    return () => {
+      window.removeEventListener('dimensionsUpdated', handleDimensionsUpdated);
+    };
+  }, []);
+
+  // 监听 relatedTickets 变化，同步更新 filteredTickets
+  useEffect(() => {
+    setFilteredTickets(relatedTickets);
+  }, [relatedTickets]);
 
   // 保存模板
   const handleSave = async () => {
@@ -806,7 +913,7 @@ const ReportTemplateEdit: React.FC = () => {
               sortOrder: relatedTickets.length,
               // 数据隔离标识：标记为模板配置数据，与维度管理原始数据物理隔离
               dataSource: 'template_config',
-              templateId: templateId, // 关联到具体模板ID
+              templateId: id, // 关联到具体模板ID
               originalDimensionId: content.id, // 记录原始维度ID，但不直接引用
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
@@ -864,14 +971,20 @@ const ReportTemplateEdit: React.FC = () => {
         
         // 递归处理内容项
         function processContentItems(items: any[], parentId: string | null = null, level: number = 1): void {
-          const currentLevelItems = items.filter((item: any) => {
-            if (level === 1) {
-              return item.level === 1 || (!item.parent_id && !item.level);
-            }
-            return item.parent_id === parentId && (item.level === level || !item.level);
-          });
+          // 获取当前层级的内容项
+          let currentLevelItems: any[] = [];
           
-          console.log(`处理第${level}级内容，找到${currentLevelItems.length}个项目:`, currentLevelItems);
+          if (level === 1) {
+            // 一级内容：没有parent_id或parent_id为null/undefined的项目
+            currentLevelItems = items.filter((item: any) => 
+              !item.parent_id || item.parent_id === null || item.parent_id === undefined
+            );
+          } else {
+            // 二级和三级内容：parent_id匹配的项目
+            currentLevelItems = items.filter((item: any) => item.parent_id === parentId);
+          }
+          
+          console.log(`处理第${level}级内容，parentId: ${parentId}，找到${currentLevelItems.length}个项目:`, currentLevelItems);
           
           currentLevelItems.forEach((item: any) => {
             const prefix = '#'.repeat(level);
@@ -879,7 +992,7 @@ const ReportTemplateEdit: React.FC = () => {
             content += `${item.content || item.description || ''}\n\n`;
             console.log(`添加第${level}级内容: ${item.title || item.name}`);
             
-            // 处理子级内容
+            // 处理子级内容 - 优先使用children数组
             if (item.children && item.children.length > 0) {
               console.log(`处理${item.title}的children:`, item.children);
               processContentItems(item.children, item.id, level + 1);
@@ -1163,7 +1276,7 @@ const ReportTemplateEdit: React.FC = () => {
     
     const categories = Array.from(categoryMap.values());
     
-    // 如果存在"未分类"分类，直接返回其下级分类和指标，否则返回所有分类
+    // 如果存在"未分类"分类，直接返回其下的指标，不显示"未分类"这个分类层级
     const uncategorized = categories.find(category => category.key === '未分类');
     if (uncategorized && uncategorized.children.length > 0) {
       // 直接返回"未分类"下的指标，不显示"未分类"这个分类层级
@@ -1175,6 +1288,7 @@ const ReportTemplateEdit: React.FC = () => {
       }));
     }
     
+    // 返回所有有明确分类的指标分类
     return categories.filter(category => category.key !== '未分类');
   };
 
@@ -1490,9 +1604,9 @@ const ReportTemplateEdit: React.FC = () => {
                       </Form.Item>
                       <Form.Item name="sectionLevel" label="章节级别" className="mb-2">
                         <Select placeholder="请选择章节级别" style={{ width: 220 }} allowClear>
-                          <Option value="一级">一级</Option>
-                          <Option value="二级">二级</Option>
-                          <Option value="三级">三级</Option>
+                          <Option value="一级">一级章节</Option>
+                          <Option value="二级">二级章节</Option>
+                          <Option value="三级">三级章节</Option>
                         </Select>
                       </Form.Item>
                       <div className="flex-1"></div>
@@ -1517,134 +1631,172 @@ const ReportTemplateEdit: React.FC = () => {
                         删除
                       </Button>
                     </div>
-
+                    <div className="text-gray-500">
+                      共{filteredTickets.length > 0 ? filteredTickets.length : relatedTickets.length}条数据
+                    </div>
                   </div>
 
                   {/* 列表区域 */}
-                  <div className="flex-1 p-5" style={{ paddingTop: '0px' }}>
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <SortableContext
-                        items={relatedTickets.map(item => item.id)}
-                        strategy={verticalListSortingStrategy}
+                  <div className="flex-1 p-5" style={{ paddingTop: '0px', overflowY: 'auto', maxHeight: 'calc(100vh - 300px)' }}>
+                    {/* 根据数据状态条件渲染 */}
+                    {(filteredTickets.length > 0 || relatedTickets.length > 0) ? (
+                      /* 有数据时显示列表 */
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
                       >
-                        <Table
-                          dataSource={relatedTickets}
-                          pagination={{
-                            current: 1,
-                            pageSize: 10,
-                            total: relatedTickets.length,
-                            showSizeChanger: true,
-                            showQuickJumper: true,
-                            showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条/总共 ${total} 条`,
-                          }}
-                          rowSelection={{
-                            selectedRowKeys: selectedTicketIds,
-                            onChange: (selectedRowKeys) => {
-                              setSelectedTicketIds(selectedRowKeys as string[]);
-                        },
-                      }}
-                      rowKey="id"
-                      locale={{
-                        emptyText: '暂无关联章节数据'
-                      }}
-                      style={{
-                        borderTop: '1px solid #E9ECF2',
-                        borderRadius: '0'
-                      }}
-                      components={{
-                        header: {
-                          cell: (props: any) => (
-                            <th 
-                              {...props} 
-                              style={{ 
-                                ...props.style, 
-                                height: '40px', 
-                                backgroundColor: '#F5F7FA', 
-                                color: '#223355',
-                                fontWeight: 'medium'
-                              }} 
-                            />
-                          ),
-                        },
-                        body: {
-                          row: DraggableRow,
-                          cell: (props: any) => (
-                            <td 
-                              {...props} 
-                              style={{ 
-                                ...props.style, 
-                                color: '#223355'
-                              }} 
-                            />
-                          ),
-                        },
-                      }}
-                    >
-                      <Column
-                        title="序号"
-                        dataIndex="index"
-                        key="index"
-                        width={80}
-                        render={(_, __, index) => index + 1}
-                      />
-                      <Column
-                        title="章节名称"
-                        dataIndex="sectionName"
-                        key="sectionName"
-                        ellipsis
-                      />
-                      <Column
-                        title="章节内容"
-                        dataIndex="sectionContent"
-                        key="sectionContent"
-                        ellipsis
-                      />
-                      <Column
-                        title="章节级别"
-                        dataIndex="sectionLevel"
-                        key="sectionLevel"
-                        width={100}
-                      />
-                      <Column
-                        title="操作"
-                        key="action"
-                        width={200}
-                        render={(_, record: any) => (
-                          <Space size="small">
-                            <Button 
-                              type="link" 
-                              size="small"
-                              style={{ color: '#3388FF' }}
-                              onClick={() => handleEditTicket(record)}
-                            >
-                              编辑
-                            </Button>
-                            <Button 
-                              type="link" 
-                              size="small"
-                              style={{ color: '#3388FF' }}
-                              onClick={() => handleViewRelatedAppeals(record)}
-                            >
-                              查看关联诉求
-                            </Button>
-                            <Button 
-                              type="link" 
-                              size="small" 
-                              style={{ color: '#FF4433' }}
-                              onClick={() => handleDeleteTicket(record)}
-                            >
-                              删除
-                            </Button>
-                          </Space>
-                        )}
-                      />
-                    </Table>
-                      </SortableContext>
-                    </DndContext>
+                        <SortableContext
+                          items={relatedTickets.map(item => item.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <Table
+                            dataSource={filteredTickets.length > 0 ? filteredTickets : relatedTickets}
+                            pagination={false}
+                            scroll={{ y: 'calc(100vh - 400px)' }}
+                            rowSelection={{
+                              selectedRowKeys: selectedTicketIds,
+                              onChange: (selectedRowKeys) => {
+                                setSelectedTicketIds(selectedRowKeys as string[]);
+                          },
+                        }}
+                        rowKey="id"
+                        locale={{
+                          emptyText: '暂无关联章节数据'
+                        }}
+                        style={{
+                          borderTop: '1px solid #E9ECF2',
+                          borderRadius: '0'
+                        }}
+                        components={{
+                          header: {
+                            cell: (props: any) => (
+                              <th 
+                                {...props} 
+                                style={{ 
+                                  ...props.style, 
+                                  height: '40px', 
+                                  backgroundColor: '#F5F7FA', 
+                                  color: '#223355',
+                                  fontWeight: 'medium'
+                                }} 
+                              />
+                            ),
+                          },
+                          body: {
+                            row: DraggableRow,
+                            cell: (props: any) => (
+                              <td 
+                                {...props} 
+                                style={{ 
+                                  ...props.style, 
+                                  color: '#223355'
+                                }} 
+                              />
+                            ),
+                          },
+                        }}
+                      >
+                          <Column
+                             title="拖拽"
+                             key="drag"
+                             width="5%"
+                             render={() => null}
+                           />
+                           <Column
+                             title="序号"
+                             dataIndex="index"
+                             key="index"
+                             width="5%"
+                             render={(_, __, index) => index + 1}
+                           />
+                        <Column
+                            title="章节名称"
+                            dataIndex="sectionName"
+                            key="sectionName"
+                            width="18%"
+                            ellipsis
+                          />
+                          <Column
+                            title="章节内容"
+                            dataIndex="sectionContent"
+                            key="sectionContent"
+                            width="23%"
+                            ellipsis
+                          />
+                          <Column
+                            title="章节级别"
+                            dataIndex="sectionLevel"
+                            key="sectionLevel"
+                            width="10%"
+                            render={(value) => {
+                              const levelMap = {
+                                '一级': '一级章节',
+                                '二级': '二级章节',
+                                '三级': '三级章节'
+                              };
+                              return levelMap[value] || value;
+                            }}
+                          />
+                          <Column
+                             title="备注"
+                             dataIndex="remark"
+                             key="remark"
+                             width="20%"
+                             ellipsis
+                           />
+                        <Column
+                          title="操作"
+                          key="action"
+                          width="17%"
+                          render={(_, record: any) => (
+                            <div style={{ display: 'flex', gap: '0px' }}>
+                              <Button 
+                                type="link" 
+                                size="small"
+                                style={{ color: '#3388FF', padding: '0 4px' }}
+                                onClick={() => handleEditTicket(record)}
+                              >
+                                编辑
+                              </Button>
+                              <Button 
+                                type="link" 
+                                size="small"
+                                style={{ color: '#3388FF', padding: '0 4px' }}
+                                onClick={() => handleViewRelatedAppeals(record)}
+                              >
+                                查看诉求
+                              </Button>
+                              <Button 
+                                type="link" 
+                                size="small" 
+                                style={{ color: '#FF4433', padding: '0 4px' }}
+                                onClick={() => handleDeleteTicket(record)}
+                              >
+                                删除
+                              </Button>
+                            </div>
+                          )}
+                        />
+                      </Table>
+                        </SortableContext>
+                      </DndContext>
+                    ) : (
+                      /* 无数据时显示提示语和缺省图标 */
+                      <div className="flex flex-col items-center justify-center" style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}>
+                        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '24px' }}>
+                          <circle cx="60" cy="60" r="60" fill="#F5F7FA"/>
+                          <path d="M40 45h40v30H40z" fill="#E5E7EB" stroke="#D1D5DB" strokeWidth="2" rx="4"/>
+                          <path d="M45 55h10v2H45zm0 5h15v2H45zm0 5h12v2H45z" fill="#9CA3AF"/>
+                          <circle cx="85" cy="35" r="8" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="2"/>
+                          <path d="M82 35h6M85 32v6" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                        <div className="text-center">
+                          <div className="text-gray-500 text-base mb-2">暂无已配置工单过滤的关联章节</div>
+                          <div className="text-gray-400 text-sm">请在报告编辑中插入维度内容来创建关联章节</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1825,19 +1977,89 @@ const ReportTemplateEdit: React.FC = () => {
             rules={[{ required: true, message: '请选择章节级别' }]}
           >
             <Select placeholder="请选择章节级别">
-              <Option value="一级">一级</Option>
-              <Option value="二级">二级</Option>
-              <Option value="三级">三级</Option>
+              <Option value="一级">一级章节</Option>
+              <Option value="二级">二级章节</Option>
+              <Option value="三级">三级章节</Option>
             </Select>
           </Form.Item>
           
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8, fontWeight: 500, color: '#223355' }}>过滤条件</div>
+            
+            <Form.Item
+              label="上报时间"
+              name="reportTime"
+              style={{ marginBottom: 12 }}
+            >
+              <RangePicker 
+                placeholder={['开始时间', '结束时间']}
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+            
+            <Form.Item
+              label="诉求来源"
+              name="appealSource"
+              style={{ marginBottom: 12 }}
+            >
+              <Select placeholder="请选择诉求来源" allowClear>
+                <Option value="微信">微信</Option>
+                <Option value="电话">电话</Option>
+                <Option value="网络">网络</Option>
+              </Select>
+            </Form.Item>
+            
+            <Form.Item
+              label="所属区域"
+              name="belongArea"
+              style={{ marginBottom: 12 }}
+            >
+              <Select placeholder="请选择所属区域" allowClear>
+                <Option value="市辖区A">市辖区A</Option>
+                <Option value="市辖区B">市辖区B</Option>
+                <Option value="县城C">县城C</Option>
+              </Select>
+            </Form.Item>
+            
+            <Form.Item
+              label="诉求事项"
+              name="appealMatter"
+              style={{ marginBottom: 12 }}
+            >
+              <Select placeholder="请选择诉求事项" allowClear>
+                <Option value="环境污染">环境污染</Option>
+                <Option value="交通拥堵">交通拥堵</Option>
+                <Option value="噪音扰民">噪音扰民</Option>
+              </Select>
+            </Form.Item>
+            
+            <Form.Item
+              label="诉求标签"
+              name="appealTags"
+              style={{ marginBottom: 12 }}
+            >
+              <Select 
+                mode="multiple" 
+                placeholder="请选择诉求标签" 
+                allowClear
+              >
+                <Option value="紧急">紧急</Option>
+                <Option value="重要">重要</Option>
+                <Option value="投诉">投诉</Option>
+                <Option value="建议">建议</Option>
+                <Option value="咨询">咨询</Option>
+                <Option value="举报">举报</Option>
+              </Select>
+            </Form.Item>
+          </div>
+          
           <Form.Item
-            label="过滤条件"
-            name="filterConditions"
+            label="备注"
+            name="remark"
           >
             <TextArea 
-              placeholder="请输入过滤条件，如：诉求来源=微信 AND 所属区域=市辖区A" 
-              rows={4}
+              placeholder="请输入备注信息" 
+              rows={3}
             />
           </Form.Item>
         </Form>

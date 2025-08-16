@@ -357,7 +357,7 @@ const DimensionDetail: React.FC = () => {
         setContentItems(mockContentItems);
       }
     } else {
-      // 新增模式，初始化空数据
+      // 新增模式，初始化数据
       const selectedText = location.state?.selectedText;
       if (selectedText) {
         // 如果有选中的文字，自动创建一级内容
@@ -371,7 +371,8 @@ const DimensionDetail: React.FC = () => {
         };
         setContentItems([newContentItem]);
       } else {
-        setContentItems([]);
+        // 新增模式下显示示例模板，供用户参考和编辑
+        setContentItems(mockContentItems);
       }
     }
   }, [id, location.state]);
@@ -832,9 +833,9 @@ ${dimensionDescription}
     };
     
     const levelTags = {
-      1: <Tag color="blue">一级</Tag>,
-      2: <Tag color="green">二级</Tag>,
-      3: <Tag color="orange">三级</Tag>
+      1: <Tag color="blue">一级章节</Tag>,
+      2: <Tag color="green">二级章节</Tag>,
+      3: <Tag color="orange">三级章节</Tag>
     };
 
     return (
