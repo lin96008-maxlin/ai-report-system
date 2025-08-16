@@ -1079,6 +1079,20 @@ const ReportTemplateEdit: React.FC = () => {
     message.success(`已插入维度章节：${dimension.name || dimension.title}`);
   };
 
+  // 根据key查找完整的维度数据
+  const findDimensionByKey = (dimensions: any[], targetKey: string): any => {
+    for (const dimension of dimensions) {
+      if (dimension.key === targetKey) {
+        return dimension;
+      }
+      if (dimension.children && dimension.children.length > 0) {
+        const found = findDimensionByKey(dimension.children, targetKey);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
   // 转换维度数据为Tree组件格式
   const convertDimensionsToTreeData = (items: any[]): TreeDataNode[] => {
     return items.map(item => {
@@ -1173,8 +1187,11 @@ const ReportTemplateEdit: React.FC = () => {
         onSelect={(selectedKeys, info) => {
           console.log('维度树点击事件触发', selectedKeys, info.node);
           if (selectedKeys.length > 0 && info.node && !(info.node as any).isCategory) {
-            console.log('插入维度内容:', info.node);
-            insertDimensionContent(info.node);
+            // 根据选中的key从原始维度数据中找到完整的维度对象
+            const selectedKey = selectedKeys[0] as string;
+            const fullDimensionData = findDimensionByKey(reportDimensions, selectedKey);
+            console.log('插入维度内容:', fullDimensionData || info.node);
+            insertDimensionContent(fullDimensionData || info.node);
           }
         }}
         style={{

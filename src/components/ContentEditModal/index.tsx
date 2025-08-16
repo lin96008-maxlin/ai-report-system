@@ -51,12 +51,12 @@ const DATA_INDICATORS = [
 ];
 
 // 预设的报告维度列表（与DimensionManagement中的mockDimensions保持一致）
-// const REPORT_DIMENSIONS = [
-//   { key: '工单总体概况分析', label: '工单总体概况分析', category: '基础分析', description: '对工单总体情况进行分析，包括数量、趋势等' },
-//   { key: '处置效率分析', label: '处置效率分析', category: '效率分析', description: '分析各处置单位的工单处理效率和质量' },
-//   { key: '问题分类统计', label: '问题分类统计', category: '分类分析', description: '按问题类型对工单进行分类统计分析' },
-//   { key: '满意度分析', label: '满意度分析', category: '基础分析', description: '分析用户对工单处理结果的满意度情况' }
-// ];
+const REPORT_DIMENSIONS = [
+  { key: '工单总体概况分析', label: '工单总体概况分析', category: '基础分析', description: '对工单总体情况进行分析，包括数量、趋势等' },
+  { key: '处置效率分析', label: '处置效率分析', category: '效率分析', description: '分析各处置单位的工单处理效率和质量' },
+  { key: '问题分类统计', label: '问题分类统计', category: '分类分析', description: '按问题类型对工单进行分类统计分析' },
+  { key: '满意度分析', label: '满意度分析', category: '基础分析', description: '分析用户对工单处理结果的满意度情况' }
+];
 
 // 按分类分组指标（使用函数避免重复计算）
 const getIndicatorCategories = () => {
@@ -70,15 +70,15 @@ const getIndicatorCategories = () => {
 };
 
 // 按分类分组维度（使用函数避免重复计算）
-// const getDimensionCategories = () => {
-//   return REPORT_DIMENSIONS.reduce((acc, dimension) => {
-//     if (!acc[dimension.category]) {
-//       acc[dimension.category] = [];
-//     }
-//     acc[dimension.category].push(dimension);
-//     return acc;
-//   }, {} as Record<string, typeof REPORT_DIMENSIONS>);
-// };
+const getDimensionCategories = () => {
+  return REPORT_DIMENSIONS.reduce((acc, dimension) => {
+    if (!acc[dimension.category]) {
+      acc[dimension.category] = [];
+    }
+    acc[dimension.category].push(dimension);
+    return acc;
+  }, {} as Record<string, typeof REPORT_DIMENSIONS>);
+};
 
 const ContentEditModal: React.FC<ContentEditModalProps> = ({
   visible,
@@ -87,7 +87,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
   editData,
   mode,
   level,
-  // onInsertDimension,
+  onInsertDimension,
   onInsertMetric
 }) => {
   const [formData, setFormData] = useState<ContentFormData>({
@@ -102,7 +102,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
     }
   });
   const [loading, setLoading] = useState(false);
-  // 移除activeTab状态，直接显示数据指标
+  const [activeTab, setActiveTab] = useState<'indicators' | 'dimensions'>('indicators');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const textAreaRef = useRef<any>(null);
 
@@ -131,13 +131,16 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
 
   // 使用useMemo缓存数据分组，避免重复计算和数据混乱
   const indicatorCategories = useMemo(() => getIndicatorCategories(), []);
-  // const _dimensionCategories = useMemo(() => getDimensionCategories(), []);
+  const dimensionCategories = useMemo(() => getDimensionCategories(), []);
 
   useEffect(() => {
     if (visible) {
       // 初始化所有分类为展开状态
       const initialExpanded: Record<string, boolean> = {};
       Object.keys(indicatorCategories).forEach(category => {
+        initialExpanded[category] = true;
+      });
+      Object.keys(dimensionCategories).forEach(category => {
         initialExpanded[category] = true;
       });
       setExpandedCategories(initialExpanded);
@@ -240,32 +243,151 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
   };
 
   // 处理报告维度插入
-  // const _handleInsertDimension = (dimensionName: string) => {
-  //   // 从localStorage获取完整的维度数据
-  //   const dimensionsData = JSON.parse(localStorage.getItem('dimensions') || '[]');
-  //   const fullDimension = dimensionsData.find((dim: any) => dim.name === dimensionName);
-  //   
-  //   if (fullDimension && onInsertDimension) {
-  //     // 传递完整的维度数据，包括content_items
-  //     onInsertDimension({
-  //       ...fullDimension,
-  //       name: dimensionName,
-  //       description: fullDimension.description || `${dimensionName}相关内容`,
-  //       content_items: fullDimension.content_items || [],
-  //       parent_id: null
-  //     });
-  //   } else if (onInsertDimension) {
-  //     // 如果没有找到完整数据，使用基本信息
-  //     onInsertDimension({ 
-  //       name: dimensionName, 
-  //       description: `${dimensionName}相关内容`,
-  //       content_items: [],
-  //       parent_id: null 
-  //     });
-  //   }
-  //   
-  //   message.success(`已插入报告维度：${dimensionName}`);
-  // };
+  const _handleInsertDimension = (dimension: any) => {
+    // 插入维度下的具体章节内容（一二三级章节标题和模板内容）
+    let dimensionContent = '';
+    
+    // 根据DimensionDetail中的mockContentItems结构插入章节内容
+    switch (dimension.key) {
+      case '工单总体概况分析':
+        dimensionContent = `
+# 总体概况
+本月共接收工单{{工单总量}}件，较上月{{环比增长率}}。
+
+## 工单数量统计
+按来源分类：微信{{微信工单数}}件，电话{{电话工单数}}件。
+
+### 微信渠道详情
+微信渠道工单主要集中在{{主要问题类型}}，占比{{占比百分比}}。
+
+## 处理效率分析
+平均处理时长{{平均处理时长}}小时，满意度{{满意度评分}}分。
+
+# 趋势分析
+工单数量呈现{{趋势描述}}趋势，预计下月{{预测数据}}。
+        `;
+        break;
+      
+      case '处置效率分析':
+        dimensionContent = `
+# 效率总览
+各处置单位平均处理时长{{平均处理时长}}小时，及时处理率{{及时处理率}}。
+
+## 单位效率对比
+不同处置单位的工单处理效率对比分析。
+
+### 效率排名详情
+处理速度最快的前三名单位及其平均时长统计。
+
+## 影响因素分析
+分析影响处置效率的主要因素和改进方向。
+
+# 优化建议
+基于效率分析结果提出的具体改进措施。
+        `;
+        break;
+      
+      case '问题分类统计':
+        dimensionContent = `
+# 问题分类概览
+按问题类型统计，{{主要问题类型}}占比最高，达{{占比百分比}}。
+
+## 各类问题统计
+详细分析各类问题的数量分布和处理情况。
+
+### 高频问题分析
+统计出现频率最高的问题类型及其解决方案。
+
+### 问题趋势分析
+分析问题类型的变化趋势和季节性特征。
+
+## 处理建议
+针对不同问题类型提出相应的处理优化建议。
+        `;
+        break;
+      
+      case '满意度分析':
+        dimensionContent = `
+# 满意度总体情况
+用户满意度评分为{{满意度评分}}分，整体满意度{{趋势描述}}。
+
+## 满意度分布
+分析不同评分区间的用户分布情况。
+
+### 高满意度因素
+总结获得高满意度评价的关键因素。
+
+### 改进空间分析
+识别满意度较低的环节和改进方向。
+
+## 提升策略
+基于满意度分析结果制定的改进措施。
+        `;
+        break;
+      
+      default:
+        dimensionContent = `
+# 维度标题
+
+这是维度的总体概况内容。
+
+## 详细分析
+
+这是维度的详细分析内容。
+
+### 具体指标
+
+这是维度的具体指标内容。
+
+### 趋势分析
+
+这是维度的趋势分析内容。
+
+## 总结建议
+
+这是维度的总结建议内容。
+        `;
+        break;
+    }
+    
+    // 在当前光标位置插入内容
+    if (textAreaRef.current) {
+      const textArea = textAreaRef.current.resizableTextArea?.textArea || textAreaRef.current;
+      const cursorPosition = textArea.selectionStart || 0;
+      
+      // 在光标位置插入维度内容
+      const currentContent = formData.content;
+      const newContent = currentContent.slice(0, cursorPosition) + dimensionContent + currentContent.slice(cursorPosition);
+      
+      setFormData(prev => ({
+        ...prev,
+        content: newContent
+      }));
+      
+      // 设置新的光标位置（在插入的内容之后）
+      setTimeout(() => {
+        const newCursorPosition = cursorPosition + dimensionContent.length;
+        textArea.setSelectionRange(newCursorPosition, newCursorPosition);
+        textArea.focus();
+      }, 0);
+    } else {
+      // 如果无法获取光标位置，则在末尾添加
+      const newContent = formData.content + dimensionContent;
+      setFormData(prev => ({
+        ...prev,
+        content: newContent
+      }));
+    }
+    
+    message.success(`已插入报告维度：${dimension.label}`);
+  };
+
+  const handleInsertDimensionClick = (dimensionKey: string) => {
+    const dimension = REPORT_DIMENSIONS.find(d => d.key === dimensionKey);
+    if (dimension) {
+      _handleInsertDimension(dimension);
+    }
+  };
 
   // 处理分类展开收起
   const toggleCategoryExpanded = (category: string) => {
@@ -329,11 +451,28 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
             />
           </div>
           <div className="px-4 py-4 border-b border-[#E9ECF2]">
-            <h3 className="text-sm font-medium text-[#223355]" style={{fontSize: '14px'}}>数据指标</h3>
+            <div className="flex gap-2">
+              <Button 
+                size="small" 
+                type={activeTab === 'indicators' ? 'primary' : 'default'}
+                onClick={() => setActiveTab('indicators')}
+              >
+                数据指标
+              </Button>
+              <Button 
+                size="small" 
+                type={activeTab === 'dimensions' ? 'primary' : 'default'}
+                onClick={() => setActiveTab('dimensions')}
+              >
+                报告维度
+              </Button>
+            </div>
           </div>
           <div className="px-4 py-4 overflow-y-auto" style={{ height: 'calc(80vh - 200px)', maxHeight: 'calc(80vh - 200px)' }}>
-            {/* 数据指标 */}
-             {Object.entries(indicatorCategories).map(([category, indicators]) => (
+            {activeTab === 'indicators' && (
+              <>
+                {/* 数据指标 */}
+                {Object.entries(indicatorCategories).map(([category, indicators]) => (
                 <div key={category} className="mb-6">
                   <div 
                     className="flex items-center justify-between mb-3 cursor-pointer"
@@ -413,7 +552,96 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
                     </div>
                   )}
                 </div>
-              ))}
+                ))}
+              </>
+            )}
+            
+            {activeTab === 'dimensions' && (
+              <>
+                {/* 报告维度 */}
+                {Object.entries(dimensionCategories).map(([category, dimensions]) => (
+                  <div key={category} className="mb-6">
+                    <div 
+                      className="flex items-center justify-between mb-3 cursor-pointer"
+                      onClick={() => toggleCategoryExpanded(category)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <FolderOutlined 
+                          style={{ 
+                            color: '#3388FF', 
+                            fontSize: '14px',
+                            minWidth: '14px'
+                          }} 
+                        />
+                        <span className="text-sm font-medium" style={{ color: '#1f2937', fontWeight: '500' }}>{category}</span>
+                      </div>
+                      {expandedCategories[category] ? (
+                        <DownOutlined 
+                          style={{ 
+                            color: '#6b7280', 
+                            fontSize: '10px',
+                            transition: 'transform 0.2s'
+                          }} 
+                        />
+                      ) : (
+                        <RightOutlined 
+                          style={{ 
+                            color: '#6b7280', 
+                            fontSize: '10px',
+                            transition: 'transform 0.2s'
+                          }} 
+                        />
+                      )}
+                    </div>
+                    {expandedCategories[category] && (
+                      <div className="space-y-1">
+                        {dimensions.map(dimension => (
+                          <div
+                            key={dimension.key}
+                            className="flex items-center py-1 px-2 rounded-md cursor-pointer transition-all duration-200 group"
+                            style={{ 
+                              minHeight: '32px',
+                              lineHeight: '20px',
+                              margin: '1px 0',
+                              backgroundColor: 'transparent',
+                              border: '1px solid transparent',
+                              borderRadius: '6px'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#F0F9FF';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                            onClick={() => handleInsertDimensionClick(dimension.key)}
+                          >
+                            <div className="flex items-center gap-2 w-full">
+                              <BarChartOutlined 
+                                style={{ 
+                                  color: '#3388FF', 
+                                  fontSize: '12px',
+                                  minWidth: '12px'
+                                }} 
+                              />
+                              <span 
+                                className="truncate text-sm" 
+                                style={{ 
+                                  color: '#4b5563',
+                                  fontWeight: '400'
+                                }}
+                                title={dimension.label}
+                              >
+                                {dimension.label}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
 
