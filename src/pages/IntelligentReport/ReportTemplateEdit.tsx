@@ -1812,6 +1812,7 @@ const ReportTemplateEdit: React.FC = () => {
                     <div>
                       <label className="block text-xs font-medium text-[#223355] mb-1">上报时间</label>
                       <RangePicker
+                        format="YYYY-MM-DD"
                         size="small"
                         className="w-full"
                         value={previewFilters.reportTime}
@@ -2006,6 +2007,7 @@ const ReportTemplateEdit: React.FC = () => {
                   <RangePicker 
                     placeholder={['开始时间', '结束时间']}
                     style={{ width: '100%' }}
+                    format="YYYY-MM-DD"
                   />
                 </Form.Item>
               </Col>
