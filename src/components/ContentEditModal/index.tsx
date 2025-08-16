@@ -87,7 +87,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
   editData,
   mode,
   level,
-  onInsertDimension,
+
   onInsertMetric
 }) => {
   const [formData, setFormData] = useState<ContentFormData>({
