@@ -82,7 +82,7 @@ const ReportTemplateEdit: React.FC = () => {
   const { addTab, removeTab, setSelectedMenuKey } = useAppStore();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(true);
   const [activeTab, setActiveTab] = useState('edit');
   const [dimensionMetricTab, setDimensionMetricTab] = useState('dimensions');
   
@@ -154,33 +154,7 @@ const ReportTemplateEdit: React.FC = () => {
   const [appealsSearchForm] = Form.useForm();
   const [appealsLoading, setAppealsLoading] = useState(false);
   
-  // 动态宽度计算
-  const [leftContentWidth, setLeftContentWidth] = useState<number>(0);
-  
-  // 计算左侧内容区宽度
-  const calculateLeftContentWidth = () => {
-    const containerElement = document.querySelector('.h-full.bg-white.rounded.flex.mx-5.mt-5');
-    const previewElement = document.querySelector('[data-preview-area]');
-    
-    if (containerElement) {
-      const containerWidth = containerElement.clientWidth;
-      const previewWidth = previewVisible && previewElement ? previewElement.clientWidth : 0;
-      const newLeftContentWidth = containerWidth - previewWidth - 40; // 减去padding等
-      setLeftContentWidth(newLeftContentWidth);
-    }
-  };
-  
-  // 监听预览区变化
-  useEffect(() => {
-    calculateLeftContentWidth();
-    
-    const handleResize = () => {
-      calculateLeftContentWidth();
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [previewVisible]);
+
   
   // 拖拽传感器
   const sensors = useSensors(
@@ -1638,9 +1612,21 @@ const ReportTemplateEdit: React.FC = () => {
 
                   {/* 列表区域 */}
                   <div className="flex-1 p-5" style={{ paddingTop: '0px', overflowY: 'auto', maxHeight: 'calc(100vh - 300px)' }}>
-                    {/* 根据数据状态条件渲染 */}
-                    {(filteredTickets.length > 0 || relatedTickets.length > 0) ? (
-                      /* 有数据时显示列表 */
+                    {relatedTickets.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full" style={{ minHeight: '300px' }}>
+                        <div className="mb-4">
+                          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="64" height="64" rx="32" fill="#F5F7FA"/>
+                            <path d="M32 20C25.3726 20 20 25.3726 20 32C20 38.6274 25.3726 44 32 44C38.6274 44 44 38.6274 44 32C44 25.3726 38.6274 20 32 20ZM32 22C37.5228 22 42 26.4772 42 32C42 37.5228 37.5228 42 32 42C26.4772 42 22 37.5228 22 32C22 26.4772 26.4772 22 32 22Z" fill="#D1D5DB"/>
+                            <path d="M28 28H36V30H28V28ZM28 32H36V34H28V32ZM28 36H32V38H28V36Z" fill="#D1D5DB"/>
+                          </svg>
+                        </div>
+                        <div className="text-gray-500 text-center">
+                          <div className="text-base mb-1">暂无已配置工单过滤的关联章节</div>
+                          <div className="text-sm text-gray-400">请先添加关联章节数据</div>
+                        </div>
+                      </div>
+                    ) : (
                       <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
@@ -1781,21 +1767,6 @@ const ReportTemplateEdit: React.FC = () => {
                       </Table>
                         </SortableContext>
                       </DndContext>
-                    ) : (
-                      /* 无数据时显示提示语和缺省图标 */
-                      <div className="flex flex-col items-center justify-center" style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}>
-                        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '24px' }}>
-                          <circle cx="60" cy="60" r="60" fill="#F5F7FA"/>
-                          <path d="M40 45h40v30H40z" fill="#E5E7EB" stroke="#D1D5DB" strokeWidth="2" rx="4"/>
-                          <path d="M45 55h10v2H45zm0 5h15v2H45zm0 5h12v2H45z" fill="#9CA3AF"/>
-                          <circle cx="85" cy="35" r="8" fill="#FEF3C7" stroke="#F59E0B" strokeWidth="2"/>
-                          <path d="M82 35h6M85 32v6" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                        <div className="text-center">
-                          <div className="text-gray-500 text-base mb-2">暂无已配置工单过滤的关联章节</div>
-                          <div className="text-gray-400 text-sm">请在报告编辑中插入维度内容来创建关联章节</div>
-                        </div>
-                      </div>
                     )}
                   </div>
                 </div>
@@ -1809,20 +1780,7 @@ const ReportTemplateEdit: React.FC = () => {
           "bg-white border-l border-[#E9ECF2] transition-all duration-300 flex flex-col",
           previewVisible ? "w-96" : "w-12"
         )}>
-          {previewVisible && (
-            <div className="px-5 py-4 border-b border-[#E9ECF2] flex items-center justify-between" style={{ height: '57px' }}>
-              <h3 className="text-sm font-medium text-[#223355] m-0" style={{ marginLeft: '0px' }}>预览</h3>
-              <div className="flex gap-2">
-                <Button
-                  type="text"
-                  icon={<EyeInvisibleOutlined />}
-                  onClick={() => setPreviewVisible(false)}
-                >
-                  收起预览
-                </Button>
-              </div>
-            </div>
-          )}
+
           <div className="flex-1 overflow-auto" style={{ padding: previewVisible ? '20px' : '8px' }}>
             {!previewVisible ? (
               <div className="h-full flex flex-col items-center justify-center">
@@ -1939,214 +1897,345 @@ const ReportTemplateEdit: React.FC = () => {
       
       {/* 编辑过滤条件弹窗 */}
       <Modal
-        title="编辑过滤条件"
+        title={
+          <div className="flex items-center gap-2 border-b border-[#E9ECF2] px-4 py-0 h-14">
+            <span>编辑</span>
+          </div>
+        }
         open={editFilterVisible}
         onOk={handleSaveEditFilter}
         onCancel={handleCancelEditFilter}
         okText="保存"
         cancelText="取消"
-        width={600}
-      >
-        <Form
-          form={editFilterForm}
-          layout="vertical"
-          style={{ marginTop: 16 }}
-        >
-          <Form.Item
-            label="章节名称"
-            name="sectionName"
-            rules={[{ required: true, message: '请输入章节名称' }]}
-          >
-            <Input placeholder="请输入章节名称" />
-          </Form.Item>
-          
-          <Form.Item
-            label="章节内容"
-            name="sectionContent"
-            rules={[{ required: true, message: '请输入章节内容' }]}
-          >
-            <TextArea 
-              placeholder="请输入章节内容" 
-              rows={3}
-            />
-          </Form.Item>
-          
-          <Form.Item
-            label="章节级别"
-            name="sectionLevel"
-            rules={[{ required: true, message: '请选择章节级别' }]}
-          >
-            <Select placeholder="请选择章节级别">
-              <Option value="一级">一级章节</Option>
-              <Option value="二级">二级章节</Option>
-              <Option value="三级">三级章节</Option>
-            </Select>
-          </Form.Item>
-          
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8, fontWeight: 500, color: '#223355' }}>过滤条件</div>
-            
-            <Form.Item
-              label="上报时间"
-              name="reportTime"
-              style={{ marginBottom: 12 }}
-            >
-              <RangePicker 
-                placeholder={['开始时间', '结束时间']}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-            
-            <Form.Item
-              label="诉求来源"
-              name="appealSource"
-              style={{ marginBottom: 12 }}
-            >
-              <Select placeholder="请选择诉求来源" allowClear>
-                <Option value="微信">微信</Option>
-                <Option value="电话">电话</Option>
-                <Option value="网络">网络</Option>
-              </Select>
-            </Form.Item>
-            
-            <Form.Item
-              label="所属区域"
-              name="belongArea"
-              style={{ marginBottom: 12 }}
-            >
-              <Select placeholder="请选择所属区域" allowClear>
-                <Option value="市辖区A">市辖区A</Option>
-                <Option value="市辖区B">市辖区B</Option>
-                <Option value="县城C">县城C</Option>
-              </Select>
-            </Form.Item>
-            
-            <Form.Item
-              label="诉求事项"
-              name="appealMatter"
-              style={{ marginBottom: 12 }}
-            >
-              <Select placeholder="请选择诉求事项" allowClear>
-                <Option value="环境污染">环境污染</Option>
-                <Option value="交通拥堵">交通拥堵</Option>
-                <Option value="噪音扰民">噪音扰民</Option>
-              </Select>
-            </Form.Item>
-            
-            <Form.Item
-              label="诉求标签"
-              name="appealTags"
-              style={{ marginBottom: 12 }}
-            >
-              <Select 
-                mode="multiple" 
-                placeholder="请选择诉求标签" 
-                allowClear
-              >
-                <Option value="紧急">紧急</Option>
-                <Option value="重要">重要</Option>
-                <Option value="投诉">投诉</Option>
-                <Option value="建议">建议</Option>
-                <Option value="咨询">咨询</Option>
-                <Option value="举报">举报</Option>
-              </Select>
-            </Form.Item>
+        width={800}
+        centered
+        style={{ padding: 20, margin: 0 }}
+        styles={{
+          body: { padding: '20px 0 0 0', margin: 0 },
+          mask: { backgroundColor: 'rgba(0, 0, 0, 0.45)' }
+        }}
+        wrapClassName="!p-0 !m-0"
+        footer={
+          <div className="border-t border-[#E9ECF2]" style={{ marginTop: '20px' }}>
+            <div className="flex justify-end gap-2 px-4 py-3">
+              <Button onClick={handleCancelEditFilter}>取消</Button>
+              <Button type="primary" onClick={handleSaveEditFilter}>
+                保存
+              </Button>
+            </div>
           </div>
-          
-          <Form.Item
-            label="备注"
-            name="remark"
+        }
+      >
+        <div style={{ padding: '0 20px' }}>
+          <Form
+            form={editFilterForm}
+            layout="vertical"
+            style={{ marginTop: 16 }}
           >
-            <TextArea 
-              placeholder="请输入备注信息" 
-              rows={3}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+            {/* 第一行：章节名称，章节级别 */}
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="章节名称"
+                  name="sectionName"
+                  rules={[{ required: true, message: '请输入章节名称' }]}
+                >
+                  <Input placeholder="请输入章节名称" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="章节级别"
+                  name="sectionLevel"
+                  rules={[{ required: true, message: '请选择章节级别' }]}
+                >
+                  <Select placeholder="请选择章节级别">
+                    <Option value="一级">一级章节</Option>
+                    <Option value="二级">二级章节</Option>
+                    <Option value="三级">三级章节</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            {/* 第二行：章节内容 */}
+            <Row>
+              <Col span={24}>
+                <Form.Item
+                  label="章节内容"
+                  name="sectionContent"
+                  rules={[{ required: true, message: '请输入章节内容' }]}
+                >
+                  <TextArea 
+                    placeholder="请输入章节内容" 
+                    rows={3}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            {/* 第三行：备注 */}
+            <Row>
+              <Col span={24}>
+                <Form.Item
+                  label="备注"
+                  name="remark"
+                >
+                  <Input placeholder="请输入备注" />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            {/* 第四行：上报时间，诉求来源 */}
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="上报时间"
+                  name="reportTime"
+                >
+                  <RangePicker 
+                    placeholder={['开始时间', '结束时间']}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="诉求来源"
+                  name="appealSource"
+                >
+                  <Select placeholder="请选择诉求来源" allowClear>
+                    <Option value="微信">微信</Option>
+                    <Option value="电话">电话</Option>
+                    <Option value="网络">网络</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            {/* 第五行：所属区域，诉求事项 */}
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="所属区域"
+                  name="belongArea"
+                >
+                  <Select placeholder="请选择所属区域" allowClear>
+                    <Option value="市辖区A">市辖区A</Option>
+                    <Option value="市辖区B">市辖区B</Option>
+                    <Option value="县城C">县城C</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="诉求事项"
+                  name="appealMatter"
+                >
+                  <Select placeholder="请选择诉求事项" allowClear>
+                    <Option value="环境污染">环境污染</Option>
+                    <Option value="交通拥堵">交通拥堵</Option>
+                    <Option value="噪音扰民">噪音扰民</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            {/* 第六行：诉求标签 */}
+            <Row>
+              <Col span={12}>
+                <Form.Item
+                  label="诉求标签"
+                  name="appealTags"
+                >
+                  <Select 
+                    mode="multiple" 
+                    placeholder="请选择诉求标签" 
+                    allowClear
+                  >
+                    <Option value="紧急">紧急</Option>
+                    <Option value="重要">重要</Option>
+                    <Option value="投诉">投诉</Option>
+                    <Option value="建议">建议</Option>
+                    <Option value="咨询">咨询</Option>
+                    <Option value="举报">举报</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+           </Form>
+         </div>
+       </Modal>
       
       {/* 查看关联诉求弹窗 */}
       <Modal
-        title={`查看关联诉求 - ${currentTicket?.sectionName || ''}`}
+        title={
+          <div className="flex items-center gap-2 border-b border-[#E9ECF2] px-4 py-0 h-14">
+            <span>查看诉求</span>
+          </div>
+        }
         open={viewAppealsVisible}
         onCancel={handleCloseViewAppeals}
-        footer={[
-          <Button key="close" onClick={handleCloseViewAppeals}>
-            关闭
-          </Button>
-        ]}
-        width={1200}
-        style={{ top: 20 }}
+        width={1600}
+        centered
+        style={{ padding: 20, margin: 0 }}
+        styles={{
+          body: { height: 'calc(80vh - 40px)', padding: 20, margin: 0 },
+          mask: { backgroundColor: 'rgba(0, 0, 0, 0.45)' }
+        }}
+        wrapClassName="!p-0 !m-0"
+        footer={null}
       >
-        <div style={{ marginBottom: 16 }}>
-          <Form
-            form={appealsSearchForm}
-            layout="inline"
-            onFinish={handleSearchAppeals}
-          >
-            <Form.Item name="appealId" label="诉求编号">
-              <Input placeholder="请输入诉求编号" style={{ width: 150 }} />
-            </Form.Item>
-            <Form.Item name="appealSource" label="诉求来源">
-              <Select placeholder="请选择诉求来源" style={{ width: 120 }} allowClear>
-                <Option value="微信">微信</Option>
-                <Option value="电话">电话</Option>
-                <Option value="网站">网站</Option>
-                <Option value="现场">现场</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item name="region" label="所属区域">
-              <Select placeholder="请选择区域" style={{ width: 120 }} allowClear>
-                <Option value="市辖区A">市辖区A</Option>
-                <Option value="市辖区B">市辖区B</Option>
-                <Option value="市辖区C">市辖区C</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item name="appealItem" label="诉求事项">
-              <Select placeholder="请选择诉求事项" style={{ width: 120 }} allowClear>
-                <Option value="环境污染">环境污染</Option>
-                <Option value="噪音扰民">噪音扰民</Option>
-                <Option value="交通问题">交通问题</Option>
-                <Option value="其他">其他</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item name="status" label="处理状态">
-              <Select placeholder="请选择状态" style={{ width: 100 }} allowClear>
-                <Option value="待处理">待处理</Option>
-                <Option value="处理中">处理中</Option>
-                <Option value="已处理">已处理</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item>
-              <Space>
-                <Button type="primary" htmlType="submit" loading={appealsLoading}>
-                  查询
-                </Button>
-                <Button onClick={handleResetAppealsSearch}>
-                  重置
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
+        <div className="pt-5 pb-4 px-5 flex-shrink-0">
+          <div className="flex items-center justify-between flex-wrap">
+            {/* 过滤条件 */}
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600 whitespace-nowrap">诉求编号:</span>
+                <Input
+                  placeholder="请输入诉求编号"
+                  value={appealsSearchForm.getFieldValue('appealId')}
+                  onChange={(e) => appealsSearchForm.setFieldsValue({ appealId: e.target.value })}
+                  className="w-48"
+                  allowClear
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600 whitespace-nowrap">诉求来源:</span>
+                <Select 
+                  placeholder="请选择诉求来源" 
+                  value={appealsSearchForm.getFieldValue('appealSource')}
+                  onChange={(value) => appealsSearchForm.setFieldsValue({ appealSource: value })}
+                  className="w-48" 
+                  allowClear
+                >
+                  <Option value="微信">微信</Option>
+                  <Option value="电话">电话</Option>
+                  <Option value="网站">网站</Option>
+                  <Option value="现场">现场</Option>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600 whitespace-nowrap">所属区域:</span>
+                <Select 
+                  placeholder="请选择区域" 
+                  value={appealsSearchForm.getFieldValue('region')}
+                  onChange={(value) => appealsSearchForm.setFieldsValue({ region: value })}
+                  className="w-48" 
+                  allowClear
+                >
+                  <Option value="市辖区A">市辖区A</Option>
+                  <Option value="市辖区B">市辖区B</Option>
+                  <Option value="市辖区C">市辖区C</Option>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600 whitespace-nowrap">诉求事项:</span>
+                <Select 
+                  placeholder="请选择诉求事项" 
+                  value={appealsSearchForm.getFieldValue('appealItem')}
+                  onChange={(value) => appealsSearchForm.setFieldsValue({ appealItem: value })}
+                  className="w-48" 
+                  allowClear
+                >
+                  <Option value="环境污染">环境污染</Option>
+                  <Option value="噪音扰民">噪音扰民</Option>
+                  <Option value="交通问题">交通问题</Option>
+                  <Option value="其他">其他</Option>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600 whitespace-nowrap">处理状态:</span>
+                <Select 
+                  placeholder="请选择状态" 
+                  value={appealsSearchForm.getFieldValue('status')}
+                  onChange={(value) => appealsSearchForm.setFieldsValue({ status: value })}
+                  className="w-48" 
+                  allowClear
+                >
+                  <Option value="待处理">待处理</Option>
+                  <Option value="处理中">处理中</Option>
+                  <Option value="已处理">已处理</Option>
+                </Select>
+              </div>
+            </div>
+            
+            {/* 按钮组 */}
+             <div className="flex items-center space-x-2 ml-4">
+               <Button onClick={handleResetAppealsSearch}>
+                 重置
+               </Button>
+               <Button type="primary" loading={appealsLoading}>
+                 查询
+               </Button>
+             </div>
+          </div>
         </div>
         
-        <Table
-          dataSource={appealsData}
-          loading={appealsLoading}
-          rowKey="id"
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条记录`
-          }}
-          scroll={{ y: 400 }}
-        >
+        <div style={{ padding: '0 20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Table
+            dataSource={appealsData}
+            loading={appealsLoading}
+            rowKey="id"
+            pagination={false}
+            scroll={{ y: 'calc(100vh - 500px)' }}
+            locale={{
+              emptyText: '暂无关联诉求数据'
+            }}
+            style={{
+              borderTop: '1px solid #E9ECF2',
+              borderRadius: '0',
+              flex: 1
+            }}
+            components={{
+              header: {
+                cell: (props) => (
+                  <th 
+                    {...props} 
+                    style={{
+                      ...props.style,
+                      height: '40px',
+                      backgroundColor: '#F5F7FA',
+                      color: '#223355',
+                      whiteSpace: 'nowrap',
+                      padding: '8px 16px',
+                      borderRadius: '0'
+                    }}
+                  />
+                )
+              },
+              body: {
+                row: (props) => (
+                  <tr 
+                    {...props} 
+                    style={{
+                      ...props.style,
+                      height: '50px'
+                    }}
+                  />
+                ),
+                cell: (props) => (
+                  <td 
+                    {...props} 
+                    style={{
+                      ...props.style,
+                      color: '#223355',
+                      whiteSpace: 'nowrap',
+                      padding: '8px 16px'
+                    }}
+                  />
+                )
+              }
+            }}
+          >
           <Column
             title="诉求编号"
             dataIndex="appealId"
             key="appealId"
             width={120}
+            render={(text) => (
+              <span style={{ color: '#3388FF' }}>{text}</span>
+            )}
           />
           <Column
             title="诉求来源"
@@ -2196,7 +2285,90 @@ const ReportTemplateEdit: React.FC = () => {
               </span>
             )}
           />
-        </Table>
+          </Table>
+        </div>
+        {/* 翻页器 - 移到弹窗底部边缘 */}
+         <div style={{ 
+           position: 'absolute',
+           bottom: '0',
+           left: '0',
+           right: '0',
+           width: '100%',
+           borderTop: '1px solid #E9ECF2',
+           backgroundColor: '#fff',
+           padding: '16px 20px 16px 0',
+           display: 'flex',
+           justifyContent: 'flex-end'
+         }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ color: '#666' }}>共 {appealsData?.length || 0} 条记录</span>
+            <select 
+              style={{
+                padding: '4px 8px',
+                border: '1px solid #d9d9d9',
+                borderRadius: '4px'
+              }}
+              defaultValue="10"
+            >
+              <option value="10">10 条/页</option>
+              <option value="20">20 条/页</option>
+              <option value="50">50 条/页</option>
+            </select>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              <button 
+                style={{
+                  padding: '4px 8px',
+                  border: '1px solid #d9d9d9',
+                  borderRadius: '4px',
+                  background: '#fff',
+                  cursor: 'pointer'
+                }}
+              >
+                上一页
+              </button>
+              <span style={{
+                 padding: '4px 8px',
+                 border: '1px solid #3388FF',
+                 borderRadius: '4px',
+                 background: '#3388FF',
+                 color: '#fff'
+               }}>
+                1
+              </span>
+              <button 
+                style={{
+                  padding: '4px 8px',
+                  border: '1px solid #d9d9d9',
+                  borderRadius: '4px',
+                  background: '#fff',
+                  cursor: 'pointer'
+                }}
+              >
+                下一页
+              </button>
+            </div>
+            <span style={{ color: '#666' }}>跳至</span>
+            <input 
+              type="number" 
+              style={{
+                width: '50px',
+                padding: '4px 8px',
+                border: '1px solid #d9d9d9',
+                borderRadius: '4px'
+              }}
+              defaultValue="1"
+            />
+            <span style={{ color: '#666' }}>页</span>
+          </div>
+        </div>
       </Modal>
     </div>
     </div>
