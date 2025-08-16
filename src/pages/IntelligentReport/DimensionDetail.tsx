@@ -106,12 +106,19 @@ const DimensionDetail: React.FC = () => {
   }, [id]);
 
   // 将分类数据转换为TreeSelect格式
-  const buildTreeData = (categories: typeof categories) => {
+  const buildTreeData = (categories: Array<{
+    id: string;
+    name: string;
+    parent_id?: string;
+    description?: string;
+    created_at?: string;
+    created_by?: string;
+  }>) => {
     const categoryMap = new Map();
     const rootCategories: any[] = [];
 
     // 创建所有节点
-    categories.forEach(category => {
+    categories.forEach((category: any) => {
       categoryMap.set(category.id, {
         value: category.id,
         title: category.name,
@@ -121,7 +128,7 @@ const DimensionDetail: React.FC = () => {
     });
 
     // 构建树结构
-    categories.forEach(category => {
+    categories.forEach((category: any) => {
       const node = categoryMap.get(category.id);
       if (category.parent_id) {
         const parent = categoryMap.get(category.parent_id);
@@ -983,7 +990,6 @@ ${dimensionDescription}
                   treeNodeFilterProp="title"
                   treeData={treeData}
                   allowClear
-                  required
                 />
               </div>
               <div className="flex items-center gap-3 flex-1">

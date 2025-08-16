@@ -1,3 +1,5 @@
+import type { Dayjs } from 'dayjs';
+
 // 维度分类类型
 export interface DimensionCategory {
   id: string;
@@ -141,6 +143,7 @@ export interface ReportTemplateQuery {
   type?: string[];
   created_by?: string;
   is_published?: boolean;
+  dateRange?: [Dayjs | null, Dayjs | null] | null;
 }
 
 export interface PreviewFilters {
@@ -149,4 +152,9 @@ export interface PreviewFilters {
   appeal_source?: string[];
   region?: string[];
   appeal_item?: string[];
+  dateRange?: string[];
+  category?: string;
+  status?: string;
+  keyword?: string;
+  district?: string;
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Modal, Input, Select, DatePicker, Button, Tag, message, Tabs, Switch } from 'antd';
-import { InsertRowBelowOutlined, FileTextOutlined, BarChartOutlined, FolderOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
+import { Modal, Input, Select, DatePicker, Button, message, Switch, Tag } from 'antd';
+import { BarChartOutlined, FolderOutlined, DownOutlined, RightOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
@@ -51,12 +51,12 @@ const DATA_INDICATORS = [
 ];
 
 // 预设的报告维度列表（与DimensionManagement中的mockDimensions保持一致）
-const REPORT_DIMENSIONS = [
-  { key: '工单总体概况分析', label: '工单总体概况分析', category: '基础分析', description: '对工单总体情况进行分析，包括数量、趋势等' },
-  { key: '处置效率分析', label: '处置效率分析', category: '效率分析', description: '分析各处置单位的工单处理效率和质量' },
-  { key: '问题分类统计', label: '问题分类统计', category: '分类分析', description: '按问题类型对工单进行分类统计分析' },
-  { key: '满意度分析', label: '满意度分析', category: '基础分析', description: '分析用户对工单处理结果的满意度情况' }
-];
+// const REPORT_DIMENSIONS = [
+//   { key: '工单总体概况分析', label: '工单总体概况分析', category: '基础分析', description: '对工单总体情况进行分析，包括数量、趋势等' },
+//   { key: '处置效率分析', label: '处置效率分析', category: '效率分析', description: '分析各处置单位的工单处理效率和质量' },
+//   { key: '问题分类统计', label: '问题分类统计', category: '分类分析', description: '按问题类型对工单进行分类统计分析' },
+//   { key: '满意度分析', label: '满意度分析', category: '基础分析', description: '分析用户对工单处理结果的满意度情况' }
+// ];
 
 // 按分类分组指标（使用函数避免重复计算）
 const getIndicatorCategories = () => {
@@ -70,15 +70,15 @@ const getIndicatorCategories = () => {
 };
 
 // 按分类分组维度（使用函数避免重复计算）
-const getDimensionCategories = () => {
-  return REPORT_DIMENSIONS.reduce((acc, dimension) => {
-    if (!acc[dimension.category]) {
-      acc[dimension.category] = [];
-    }
-    acc[dimension.category].push(dimension);
-    return acc;
-  }, {} as Record<string, typeof REPORT_DIMENSIONS>);
-};
+// const getDimensionCategories = () => {
+//   return REPORT_DIMENSIONS.reduce((acc, dimension) => {
+//     if (!acc[dimension.category]) {
+//       acc[dimension.category] = [];
+//     }
+//     acc[dimension.category].push(dimension);
+//     return acc;
+//   }, {} as Record<string, typeof REPORT_DIMENSIONS>);
+// };
 
 const ContentEditModal: React.FC<ContentEditModalProps> = ({
   visible,
@@ -87,7 +87,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
   editData,
   mode,
   level,
-  onInsertDimension,
+  // onInsertDimension,
   onInsertMetric
 }) => {
   const [formData, setFormData] = useState<ContentFormData>({
@@ -131,7 +131,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
 
   // 使用useMemo缓存数据分组，避免重复计算和数据混乱
   const indicatorCategories = useMemo(() => getIndicatorCategories(), []);
-  const dimensionCategories = useMemo(() => getDimensionCategories(), []);
+  // const _dimensionCategories = useMemo(() => getDimensionCategories(), []);
 
   useEffect(() => {
     if (visible) {
@@ -240,32 +240,32 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
   };
 
   // 处理报告维度插入
-  const handleInsertDimension = (dimensionName: string) => {
-    // 从localStorage获取完整的维度数据
-    const dimensionsData = JSON.parse(localStorage.getItem('dimensions') || '[]');
-    const fullDimension = dimensionsData.find((dim: any) => dim.name === dimensionName);
-    
-    if (fullDimension && onInsertDimension) {
-      // 传递完整的维度数据，包括content_items
-      onInsertDimension({
-        ...fullDimension,
-        name: dimensionName,
-        description: fullDimension.description || `${dimensionName}相关内容`,
-        content_items: fullDimension.content_items || [],
-        parent_id: null
-      });
-    } else if (onInsertDimension) {
-      // 如果没有找到完整数据，使用基本信息
-      onInsertDimension({ 
-        name: dimensionName, 
-        description: `${dimensionName}相关内容`,
-        content_items: [],
-        parent_id: null 
-      });
-    }
-    
-    message.success(`已插入报告维度：${dimensionName}`);
-  };
+  // const _handleInsertDimension = (dimensionName: string) => {
+  //   // 从localStorage获取完整的维度数据
+  //   const dimensionsData = JSON.parse(localStorage.getItem('dimensions') || '[]');
+  //   const fullDimension = dimensionsData.find((dim: any) => dim.name === dimensionName);
+  //   
+  //   if (fullDimension && onInsertDimension) {
+  //     // 传递完整的维度数据，包括content_items
+  //     onInsertDimension({
+  //       ...fullDimension,
+  //       name: dimensionName,
+  //       description: fullDimension.description || `${dimensionName}相关内容`,
+  //       content_items: fullDimension.content_items || [],
+  //       parent_id: null
+  //     });
+  //   } else if (onInsertDimension) {
+  //     // 如果没有找到完整数据，使用基本信息
+  //     onInsertDimension({ 
+  //       name: dimensionName, 
+  //       description: `${dimensionName}相关内容`,
+  //       content_items: [],
+  //       parent_id: null 
+  //     });
+  //   }
+  //   
+  //   message.success(`已插入报告维度：${dimensionName}`);
+  // };
 
   // 处理分类展开收起
   const toggleCategoryExpanded = (category: string) => {

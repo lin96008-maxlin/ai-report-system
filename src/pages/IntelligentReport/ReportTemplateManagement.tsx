@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Form, Input, Select, Space, Table, Tag, message, Modal, Row, Col, DatePicker, Popconfirm, Pagination, Empty, Checkbox } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, ReloadOutlined, ExportOutlined, ImportOutlined, CalendarOutlined, BarChartOutlined, LineChartOutlined, PieChartOutlined, AreaChartOutlined, DotChartOutlined, FileTextOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { Card, Button, Input, Select, Tag, message, Modal, DatePicker, Popconfirm, Pagination, Empty, Checkbox } from 'antd';
+import type { CheckboxChangeEvent } from 'antd/es/checkbox';
+import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, FileTextOutlined } from '@ant-design/icons';
 import type { ReportTemplate, ReportTemplateQuery } from '../../types';
 import ReportTemplatePreview from './ReportTemplatePreview';
 
@@ -9,8 +9,7 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 const ReportTemplateManagement: React.FC = () => {
-  const [form] = Form.useForm();
-  const navigate = useNavigate();
+
   const [templates, setTemplates] = useState<ReportTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -21,11 +20,11 @@ const ReportTemplateManagement: React.FC = () => {
   });
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [queryParams, setQueryParams] = useState({
+
+  const [queryParams, setQueryParams] = useState<ReportTemplateQuery>({
     name: '',
     type: undefined,
-    isPublished: undefined,
+    is_published: undefined,
     dateRange: null
   });
 
@@ -144,7 +143,7 @@ const ReportTemplateManagement: React.FC = () => {
     setQueryParams({
       name: '',
       type: undefined,
-      isPublished: undefined,
+      is_published: undefined,
       dateRange: null
     });
     fetchTemplates();
@@ -210,11 +209,7 @@ const ReportTemplateManagement: React.FC = () => {
     window.dispatchEvent(addTabEvent);
   };
 
-  // 预览模板
-  const handlePreview = (record: ReportTemplate) => {
-    setSelectedTemplate(record);
-    setPreviewModalVisible(true);
-  };
+
 
   // 关闭预览
   const handleClosePreview = () => {
@@ -322,250 +317,9 @@ const ReportTemplateManagement: React.FC = () => {
     });
   };
 
-  const columns = [
-    {
-      title: '序号',
-      dataIndex: 'index',
-      key: 'index',
-      width: 60,
-      onHeaderCell: () => ({
-        style: {
-          backgroundColor: '#F5F7FA',
-          height: '40px',
-          whiteSpace: 'nowrap',
-          color: '#223355'
-        }
-      }),
-      render: (_: any, __: any, index: number) => 
-        (pagination.current - 1) * pagination.pageSize + index + 1
-    },
-    {
-      title: '模板名称',
-      dataIndex: 'name',
-      key: 'name',
-      width: 165,
-      ellipsis: true,
-      onHeaderCell: () => ({
-        style: {
-          backgroundColor: '#F5F7FA',
-          height: '40px',
-          whiteSpace: 'nowrap',
-          color: '#223355'
-        }
-      }),
-      render: (text: string) => <span className="font-medium">{text}</span>
-    },
-    {
-      title: '模板类型',
-      dataIndex: 'type',
-      key: 'type',
-      width: 100,
-      onHeaderCell: () => ({
-        style: {
-          backgroundColor: '#F5F7FA',
-          height: '40px',
-          whiteSpace: 'nowrap',
-          color: '#223355'
-        }
-      }),
-      render: (type: string) => {
-        const typeColors = {
-          '日报': 'blue',
-          '周报': 'green',
-          '月报': 'purple',
-          '季报': 'orange',
-          '半年报': 'cyan',
-          '年报': 'red',
-          '专题报告': 'magenta'
-        };
-        const typeIcons = {
-          '日报': 'CalendarOutlined',
-          '周报': 'BarChartOutlined',
-          '月报': 'LineChartOutlined',
-          '季报': 'PieChartOutlined',
-          '半年报': 'AreaChartOutlined',
-          '年报': 'DotChartOutlined',
-          '专题报告': 'FileTextOutlined'
-        };
-        const IconComponent = typeIcons[type as keyof typeof typeIcons];
-        return (
-          <Tag color={typeColors[type as keyof typeof typeColors]}>
-            <span className="flex items-center">
-              {IconComponent === 'CalendarOutlined' && <CalendarOutlined className="mr-1" />}
-              {IconComponent === 'BarChartOutlined' && <BarChartOutlined className="mr-1" />}
-              {IconComponent === 'LineChartOutlined' && <LineChartOutlined className="mr-1" />}
-              {IconComponent === 'PieChartOutlined' && <PieChartOutlined className="mr-1" />}
-              {IconComponent === 'AreaChartOutlined' && <AreaChartOutlined className="mr-1" />}
-              {IconComponent === 'DotChartOutlined' && <DotChartOutlined className="mr-1" />}
-              {IconComponent === 'FileTextOutlined' && <FileTextOutlined className="mr-1" />}
-              {type}
-            </span>
-          </Tag>
-        );
-      }
-    },
-    {
-      title: '模板描述',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-      onHeaderCell: () => ({
-        style: {
-          backgroundColor: '#F5F7FA',
-          height: '40px',
-          whiteSpace: 'nowrap',
-          color: '#223355'
-        }
-      })
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 160,
-      onHeaderCell: () => ({
-        style: {
-          backgroundColor: '#F5F7FA',
-          height: '40px',
-          whiteSpace: 'nowrap',
-          color: '#223355'
-        }
-      }),
-      render: (text: string) => {
-        if (!text) return '-';
-        // 格式化时间显示，确保格式统一
-        const date = new Date(text);
-        if (isNaN(date.getTime())) return text;
-        return date.toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        }).replace(/\//g, '-');
-      }
-    },
-    {
-      title: '创建人',
-      dataIndex: 'created_by',
-      key: 'created_by',
-      width: 100,
-      onHeaderCell: () => ({
-        style: {
-          backgroundColor: '#F5F7FA',
-          height: '40px',
-          whiteSpace: 'nowrap',
-          color: '#223355'
-        }
-      })
-    },
-    {
-      title: '更新时间',
-      dataIndex: 'updated_at',
-      key: 'updated_at',
-      width: 160,
-      onHeaderCell: () => ({
-        style: {
-          backgroundColor: '#F5F7FA',
-          height: '40px',
-          whiteSpace: 'nowrap',
-          color: '#223355'
-        }
-      }),
-      render: (text: string) => {
-        if (!text) return '-';
-        // 格式化时间显示，确保格式统一
-        const date = new Date(text);
-        if (isNaN(date.getTime())) return text;
-        return date.toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        }).replace(/\//g, '-');
-      }
-    },
-    {
-      title: '发布状态',
-      dataIndex: 'is_published',
-      key: 'is_published',
-      width: 80,
-      onHeaderCell: () => ({
-        style: {
-          backgroundColor: '#F5F7FA',
-          height: '40px',
-          whiteSpace: 'nowrap',
-          color: '#223355'
-        }
-      }),
-      render: (published: boolean) => (
-        <Tag color={published ? 'success' : 'default'}>
-          {published ? '已发布' : '未发布'}
-        </Tag>
-      )
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 310,
-      fixed: 'right' as const,
-      onHeaderCell: () => ({
-        style: {
-          backgroundColor: '#F5F7FA',
-          height: '40px',
-          whiteSpace: 'nowrap',
-          color: '#223355'
-        }
-      }),
-      render: (_, record) => (
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0 }}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          {record.is_published ? (
-            <Button
-              type="link"
-              size="small"
-              style={{ padding: 0 }}
-              onClick={() => handleUnpublish(record)}
-            >
-              取消发布
-            </Button>
-          ) : (
-            <Button
-              type="link"
-              size="small"
-              style={{ padding: 0 }}
-              onClick={() => handlePublish(record)}
-            >
-              发布
-            </Button>
-          )}
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, color: '#FF4433' }}
-            onClick={() => handleDelete(record)}
-          >
-            删除
-          </Button>
-        </div>
-      )
-    }
-  ];
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (newSelectedRowKeys: React.Key[]) => {
-      setSelectedRowKeys(newSelectedRowKeys);
-    }
-  };
+
+
 
   return (
     <div className="h-full bg-white rounded flex flex-col mx-5 mt-5" style={{ height: 'calc(100vh - 130px - 20px)', marginBottom: '20px' }}>
@@ -611,8 +365,8 @@ const ReportTemplateManagement: React.FC = () => {
               <span className="text-[#223355] whitespace-nowrap">发布状态:</span>
               <Select
                 placeholder="请选择发布状态"
-                value={queryParams.isPublished}
-                onChange={(value) => setQueryParams(prev => ({ ...prev, isPublished: value }))}
+                value={queryParams.is_published}
+                onChange={(value) => setQueryParams(prev => ({ ...prev, is_published: value }))}
                 style={{ width: '260px' }}
                 allowClear
               >
@@ -649,7 +403,7 @@ const ReportTemplateManagement: React.FC = () => {
               <Checkbox
                 checked={templates.length > 0 && selectedRowKeys.length === templates.length}
                 indeterminate={selectedRowKeys.length > 0 && selectedRowKeys.length < templates.length}
-                onChange={(e) => {
+                onChange={(e: CheckboxChangeEvent) => {
                   if (e.target.checked) {
                     setSelectedRowKeys(templates.map(t => t.id));
                   } else {
@@ -712,7 +466,7 @@ const ReportTemplateManagement: React.FC = () => {
                     style={selectedRowKeys.includes(template.id) ? { borderColor: '#3388FF' } : {}}
                     onClick={() => handleEdit(template)}
                     actions={[
-                      <EditOutlined key="edit" style={{ color: '#3388FF' }} onClick={(e) => {
+                      <EditOutlined key="edit" style={{ color: '#3388FF' }} onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         handleEdit(template);
                       }} />,
@@ -749,7 +503,7 @@ const ReportTemplateManagement: React.FC = () => {
                         okText="确定"
                         cancelText="取消"
                       >
-                        <DeleteOutlined style={{ color: '#FF4433' }} onClick={(e) => e.stopPropagation()} />
+                        <DeleteOutlined style={{ color: '#FF4433' }} onClick={(e: React.MouseEvent) => e.stopPropagation()} />
                       </Popconfirm>
                     ]}
                   >
@@ -757,14 +511,14 @@ const ReportTemplateManagement: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <Checkbox
                           checked={selectedRowKeys.includes(template.id)}
-                          onChange={(e) => {
+                          onChange={(e: CheckboxChangeEvent) => {
                             if (e.target.checked) {
                               setSelectedRowKeys(prev => [...prev, template.id]);
                             } else {
                               setSelectedRowKeys(prev => prev.filter(id => id !== template.id));
                             }
                           }}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         />
                         <div className="flex items-center gap-2">
                           {/* 圆形序号 */}
@@ -845,7 +599,7 @@ const ReportTemplateManagement: React.FC = () => {
                               </div>
                               <div className="flex-1">
                                 <span>发布状态: </span>
-                                <Tag color={template.is_published ? 'success' : 'default'} size="small">
+                                <Tag color={template.is_published ? 'success' : 'default'}>
                                   {template.is_published ? '已发布' : '未发布'}
                                 </Tag>
                               </div>
@@ -877,7 +631,7 @@ const ReportTemplateManagement: React.FC = () => {
                   }));
                   setSelectedRowKeys([]);
                 }}
-                onShowSizeChange={(current, size) => {
+                onShowSizeChange={(_, size) => {
                   setPagination(prev => ({
                     ...prev,
                     current: 1,

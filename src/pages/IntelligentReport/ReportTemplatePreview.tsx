@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Card, Form, Select, DatePicker, Input, Button, Space, Row, Col, Spin, Tag, Divider } from 'antd';
+import React, { useState } from 'react';
+import { Modal, Card, Form, Select, DatePicker, Input, Button, Space, Row, Col, Spin, Tag } from 'antd';
 import { EyeOutlined, DownloadOutlined, CloseOutlined } from '@ant-design/icons';
 import type { ReportTemplate, PreviewFilters } from '../../types';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
-const { TextArea } = Input;
 
 interface ReportTemplatePreviewProps {
   template: ReportTemplate;
@@ -32,7 +31,7 @@ const ReportTemplatePreview: React.FC<ReportTemplatePreviewProps> = ({
   const [showPreview, setShowPreview] = useState(false);
 
   // 模拟数据指标值
-  const mockIndicatorValues = {
+  const mockIndicatorValues: Record<string, string> = {
     '今日工单总量': '1,234',
     '平均满意度': '92.5',
     '处理及时率': '87.3',
@@ -46,7 +45,7 @@ const ReportTemplatePreview: React.FC<ReportTemplatePreviewProps> = ({
   };
 
   // 模拟维度数据
-  const mockDimensionData = {
+  const mockDimensionData: Record<string, Record<string, any>> = {
     '城市运行综合维度': {
       '工单总量': '1,234',
       '满意度': '92.5%',

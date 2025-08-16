@@ -11,14 +11,14 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, Select, Form, message, Tabs, Row, Col, DatePicker, Tree, Table, Space, Modal } from 'antd';
+import { Button, Input, Select, Form, message, Tabs, Row, Col, DatePicker, Tree, Table, Modal } from 'antd';
 import type { TreeDataNode } from 'antd';
-import { SaveOutlined, ArrowLeftOutlined, EyeOutlined, EyeInvisibleOutlined, PlusOutlined, PlayCircleOutlined, DownOutlined, UpOutlined, CalendarOutlined, BarChartOutlined, LineChartOutlined, PieChartOutlined, AreaChartOutlined, DotChartOutlined, FileTextOutlined, FolderOutlined, FileOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons';
+import { SaveOutlined, ArrowLeftOutlined, EyeOutlined, PlayCircleOutlined, DownOutlined, UpOutlined, BarChartOutlined, FolderOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/utils';
 import { useAppStore } from '@/store';
 import type { ReportTemplate } from '../../types';
@@ -78,8 +78,8 @@ const DraggableRow = ({ index, moveRow, className, style, ...restProps }: any) =
 const ReportTemplateEdit: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { addTab, removeTab, setSelectedMenuKey } = useAppStore();
+  // const _location = useLocation();
+  const { addTab: _addTab, removeTab, setSelectedMenuKey } = useAppStore();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(true);
@@ -105,38 +105,38 @@ const ReportTemplateEdit: React.FC = () => {
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   
   // 编辑器引用
-  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<any>(null);
   const [editorContent, setEditorContent] = useState('');
   
   // 表单数据
-  const [templateData, setTemplateData] = useState<ReportTemplate>({
+  const [_templateData, setTemplateData] = useState<ReportTemplate>({
     id: '',
     name: '',
     description: '',
-    type: '',
-    contentStructure: {
-      richTextContent: '',
-      embeddedDimensions: []
+    type: '月报' as const,
+    content_structure: {
+      rich_text_content: '',
+      embedded_dimensions: []
     },
-    isPublished: false,
-    createdAt: '',
-    createdBy: '',
-    updatedAt: '',
-    updatedBy: ''
+    is_published: false,
+    created_at: '',
+    created_by: '',
+    updated_at: '',
+    updated_by: ''
   });
 
   // 数据指标状态
   const [dataMetrics, setDataMetrics] = useState([]);
 
   // 报告维度状态
-  const [reportDimensions, setReportDimensions] = useState([]);
+  const [reportDimensions, setReportDimensions] = useState<any[]>([]);
   
   // 关联工单相关状态
   const [relatedTickets, setRelatedTickets] = useState<any[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<any[]>([]);
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const [ticketSearchForm] = Form.useForm();
-  const [ticketQueryParams, setTicketQueryParams] = useState({
+  const [_ticketQueryParams, _setTicketQueryParams] = useState({
     sectionName: '',
     sectionContent: '',
     sectionLevel: ''
@@ -196,7 +196,7 @@ const ReportTemplateEdit: React.FC = () => {
   // 关联工单查询
   const handleTicketSearch = () => {
     const values = ticketSearchForm.getFieldsValue();
-    setTicketQueryParams(values);
+    _setTicketQueryParams(values);
     
     // 实现实际查询逻辑
     let filteredTickets = [...relatedTickets];
@@ -230,7 +230,7 @@ const ReportTemplateEdit: React.FC = () => {
   // 关联工单重置
   const handleTicketReset = () => {
     ticketSearchForm.resetFields();
-    setTicketQueryParams({
+    _setTicketQueryParams({
       sectionName: '',
       sectionContent: '',
       sectionLevel: ''
@@ -349,7 +349,7 @@ const ReportTemplateEdit: React.FC = () => {
   };
   
   // 加载关联诉求数据
-  const loadAppealsData = async (ticket: any) => {
+  const loadAppealsData = async (_ticket: any) => {
     setAppealsLoading(true);
     try {
       // 模拟API调用
@@ -396,12 +396,12 @@ const ReportTemplateEdit: React.FC = () => {
   };
   
   // 查询关联诉求
-  const handleSearchAppeals = () => {
-    const values = appealsSearchForm.getFieldsValue();
-    console.log('查询关联诉求:', values);
-    // 这里可以根据查询条件重新加载数据
-    loadAppealsData(currentTicket);
-  };
+  // const _handleSearchAppeals = () => {
+  //   const values = appealsSearchForm.getFieldsValue();
+  //   console.log('查询关联诉求:', values);
+  //   // 这里可以根据查询条件重新加载数据
+  //   loadAppealsData(currentTicket);
+  // };
   
   // 重置关联诉求查询条件
   const handleResetAppealsSearch = () => {
@@ -420,7 +420,7 @@ const ReportTemplateEdit: React.FC = () => {
   const buildHierarchicalData = (items: any[], type: 'dimensions' | 'metrics') => {
     if (type === 'dimensions') {
       // 维度数据：根据分类构建层级
-      const result: any[] = [];
+      // const result: any[] = [];
       const categoryMap = new Map();
       
       // 首先获取所有分类
@@ -594,19 +594,19 @@ const ReportTemplateEdit: React.FC = () => {
         name: '月度工单分析报告',
         description: '分析月度工单处理情况',
         type: '月报',
-        contentStructure: {
-          richTextContent: '<h2>月度工单分析报告</h2>\n<p>报告期间：{{时间范围}}</p>\n<p>总工单数：{{总工单数}}</p>',
-          embeddedDimensions: []
+        content_structure: {
+          rich_text_content: '<h2>月度工单分析报告</h2>\n<p>报告期间：{{时间范围}}</p>\n<p>总工单数：{{总工单数}}</p>',
+          embedded_dimensions: []
         },
-        isPublished: false,
-        createdAt: '2024-01-15 10:30:00',
-        createdBy: 'admin',
-        updatedAt: '2024-01-15 10:30:00',
-        updatedBy: 'admin'
+        is_published: false,
+        created_at: '2024-01-15 10:30:00',
+        created_by: 'admin',
+        updated_at: '2024-01-15 10:30:00',
+        updated_by: 'admin'
       };
       
       setTemplateData(mockTemplate);
-      const initialContent = mockTemplate.contentStructure.richTextContent;
+      const initialContent = mockTemplate.content_structure.rich_text_content;
       setEditorContent(initialContent);
       form.setFieldsValue({
         name: mockTemplate.name,
@@ -728,8 +728,8 @@ const ReportTemplateEdit: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // 模拟预览内容
-      const startDate = previewFilters.reportTime?.[0]?.format('YYYY-MM-DD') || '2024-01-01';
-      const endDate = previewFilters.reportTime?.[1]?.format('YYYY-MM-DD') || '2024-01-31';
+      const startDate = previewFilters.reportTime?.[0] ? (previewFilters.reportTime[0] as any).format('YYYY-MM-DD') : '2024-01-01';
+      const endDate = previewFilters.reportTime?.[1] ? (previewFilters.reportTime[1] as any).format('YYYY-MM-DD') : '2024-01-31';
       const appealSource = previewFilters.appealSource || '全部';
       const region = previewFilters.region || '全部';
       const appealItem = previewFilters.appealItem || '全部';
@@ -1037,7 +1037,7 @@ const ReportTemplateEdit: React.FC = () => {
     let insertPosition = currentContent.length;
     
     if (editorRef.current) {
-      const textAreaElement = editorRef.current.resizableTextArea?.textArea;
+      const textAreaElement = editorRef.current?.resizableTextArea?.textArea || editorRef.current;
       if (textAreaElement) {
         insertPosition = textAreaElement.selectionStart;
         console.log('光标位置:', insertPosition);
@@ -1067,7 +1067,7 @@ const ReportTemplateEdit: React.FC = () => {
     // 设置光标位置
     setTimeout(() => {
       if (editorRef.current) {
-        const textAreaElement = editorRef.current.resizableTextArea?.textArea;
+        const textAreaElement = editorRef.current?.resizableTextArea?.textArea || editorRef.current;
         if (textAreaElement) {
           textAreaElement.focus();
           textAreaElement.setSelectionRange(insertPosition + insertContent.length, insertPosition + insertContent.length);
@@ -1158,10 +1158,7 @@ const ReportTemplateEdit: React.FC = () => {
   };
 
   // 处理维度树节点点击
-  const handleDimensionSelect = (selectedKeys: React.Key[], info: any) => {
-    // 这个函数现在不会被调用，因为selectable=false
-    // 点击事件由自定义的handleClick处理
-  };
+
 
   // 渲染维度列表
   const renderDimensionList = () => {
@@ -1174,10 +1171,10 @@ const ReportTemplateEdit: React.FC = () => {
         className="dimension-tree"
         selectable={true}
         onSelect={(selectedKeys, info) => {
-          console.log('维度树点击事件触发', selectedKeys, info.node.data);
-          if (selectedKeys.length > 0 && info.node.data && !info.node.data.isCategory) {
-            console.log('调用insertDimensionContent');
-            insertDimensionContent(info.node.data);
+          console.log('维度树点击事件触发', selectedKeys, info.node);
+          if (selectedKeys.length > 0 && info.node && !(info.node as any).isCategory) {
+            console.log('插入维度内容:', info.node);
+            insertDimensionContent(info.node);
           }
         }}
         style={{
@@ -1254,7 +1251,7 @@ const ReportTemplateEdit: React.FC = () => {
     const uncategorized = categories.find(category => category.key === '未分类');
     if (uncategorized && uncategorized.children.length > 0) {
       // 直接返回"未分类"下的指标，不显示"未分类"这个分类层级
-      return uncategorized.children.map(child => ({
+      return uncategorized.children.map((child: any) => ({
         ...child,
         key: child.id || child.key,
         title: child.label || child.title,
@@ -1349,11 +1346,7 @@ const ReportTemplateEdit: React.FC = () => {
     });
   };
 
-  // 处理指标树节点点击
-  const handleMetricSelect = (selectedKeys: React.Key[], info: any) => {
-    // 这个函数现在不会被调用，因为selectable=false
-    // 点击事件由自定义的handleClick处理
-  };
+
 
   // 渲染指标列表
   const renderMetricList = () => {
@@ -1716,12 +1709,12 @@ const ReportTemplateEdit: React.FC = () => {
                             key="sectionLevel"
                             width="10%"
                             render={(value) => {
-                              const levelMap = {
+                              const levelMap: Record<string, string> = {
                                 '一级': '一级章节',
                                 '二级': '二级章节',
                                 '三级': '三级章节'
                               };
-                              return levelMap[value] || value;
+                              return levelMap[value as string] || value;
                             }}
                           />
                           <Column
@@ -2189,7 +2182,7 @@ const ReportTemplateEdit: React.FC = () => {
             }}
             components={{
               header: {
-                cell: (props) => (
+                cell: (props: any) => (
                   <th 
                     {...props} 
                     style={{
@@ -2205,7 +2198,7 @@ const ReportTemplateEdit: React.FC = () => {
                 )
               },
               body: {
-                row: (props) => (
+                row: (props: any) => (
                   <tr 
                     {...props} 
                     style={{
@@ -2214,7 +2207,7 @@ const ReportTemplateEdit: React.FC = () => {
                     }}
                   />
                 ),
-                cell: (props) => (
+                cell: (props: any) => (
                   <td 
                     {...props} 
                     style={{

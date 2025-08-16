@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { message, Button, Space, Card } from 'antd';
 
 interface OnlyOfficeEditorProps {
@@ -25,7 +25,7 @@ const OnlyOfficeEditor = forwardRef<OnlyOfficeEditorRef, OnlyOfficeEditorProps>(
   placeholder = '请输入内容...',
   onInsertPlaceholder,
   mode = 'edit',
-  toolbarHeight = 40
+  toolbarHeight: _toolbarHeight = 40
 }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
