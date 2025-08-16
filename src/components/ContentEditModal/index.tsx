@@ -687,6 +687,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
               <RangePicker
                 size="middle"
                 className="w-full"
+                format="YYYY-MM-DD"
                 value={formData.workOrderFilters.reportTimeStart && formData.workOrderFilters.reportTimeEnd ? 
                   [dayjs(formData.workOrderFilters.reportTimeStart), dayjs(formData.workOrderFilters.reportTimeEnd)] : null}
                 onChange={(dates) => {

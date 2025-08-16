@@ -22,6 +22,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/utils';
 import { useAppStore } from '@/store';
 import type { ReportTemplate } from '../../types';
+import dayjs from 'dayjs';
 import './ReportTemplateEdit.css';
 
 const { Option } = Select;
@@ -276,7 +277,7 @@ const ReportTemplateEdit: React.FC = () => {
       remark: record.remark || '',
       // 带入维度内容设置的过滤条件
       reportTime: workOrderFilters.reportTimeStart && workOrderFilters.reportTimeEnd ? 
-        [workOrderFilters.reportTimeStart, workOrderFilters.reportTimeEnd] : undefined,
+        [dayjs(workOrderFilters.reportTimeStart), dayjs(workOrderFilters.reportTimeEnd)] : undefined,
       appealSource: workOrderFilters.appealSource && workOrderFilters.appealSource.length > 0 ? 
         workOrderFilters.appealSource[0] : undefined,
       belongArea: workOrderFilters.region && workOrderFilters.region.length > 0 ? 
@@ -304,8 +305,8 @@ const ReportTemplateEdit: React.FC = () => {
               // 更新workOrderFilters结构
               workOrderFilters: {
                 ...ticket.workOrderFilters,
-                reportTimeStart: values.reportTime && values.reportTime[0] ? values.reportTime[0] : '',
-                reportTimeEnd: values.reportTime && values.reportTime[1] ? values.reportTime[1] : '',
+                reportTimeStart: values.reportTime && values.reportTime[0] ? values.reportTime[0].format('YYYY-MM-DD') : '',
+                reportTimeEnd: values.reportTime && values.reportTime[1] ? values.reportTime[1].format('YYYY-MM-DD') : '',
                 appealSource: values.appealSource ? [values.appealSource] : [],
                 region: values.belongArea ? [values.belongArea] : [],
                 appealItem: values.appealMatter ? [values.appealMatter] : [],
