@@ -354,14 +354,18 @@ const DimensionDetail: React.FC = () => {
           setDimensionName(currentDimension.name || '');
           setDimensionCategory(currentDimension.category_id || currentDimension.category || '');
           setDimensionDescription(currentDimension.description || '');
-          setContentItems(currentDimension.content_items || mockContentItems);
+          setContentItems(currentDimension.content_items || []);
         } else {
-          // 如果找不到对应维度，使用默认数据
-          setContentItems(mockContentItems);
+          // 如果找不到对应维度，显示错误信息并返回列表
+          message.error('未找到对应的维度数据');
+          navigate('/intelligent-report/dimension-management');
+          return;
         }
       } catch (error) {
         console.error('加载维度数据失败:', error);
-        setContentItems(mockContentItems);
+        message.error('加载维度数据失败');
+        navigate('/intelligent-report/dimension-management');
+        return;
       }
     } else {
       // 新增模式，初始化数据
@@ -378,8 +382,8 @@ const DimensionDetail: React.FC = () => {
         };
         setContentItems([newContentItem]);
       } else {
-        // 新增模式下显示示例模板，供用户参考和编辑
-        setContentItems(mockContentItems);
+        // 新增模式下内容为空白
+        setContentItems([]);
       }
     }
   }, [id, location.state]);

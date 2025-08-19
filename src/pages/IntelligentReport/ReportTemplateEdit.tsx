@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Input, Select, Form, message, Tabs, Row, Col, DatePicker, Tree, Table, Modal } from 'antd';
 import type { TreeDataNode } from 'antd';
-import { SaveOutlined, ArrowLeftOutlined, EyeOutlined, PlayCircleOutlined, DownOutlined, UpOutlined, BarChartOutlined, FolderOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons';
+import { SaveOutlined, ArrowLeftOutlined, EyeOutlined, EyeInvisibleOutlined, PlayCircleOutlined, DownOutlined, UpOutlined, BarChartOutlined, FolderOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
@@ -82,6 +82,8 @@ const ReportTemplateEdit: React.FC = () => {
   // const _location = useLocation();
   const { addTab: _addTab, removeTab, setSelectedMenuKey } = useAppStore();
   const [form] = Form.useForm();
+  const [ticketSearchForm] = Form.useForm();
+  const [appealsSearchForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(true);
   const [activeTab, setActiveTab] = useState('edit');
@@ -136,7 +138,6 @@ const ReportTemplateEdit: React.FC = () => {
   const [relatedTickets, setRelatedTickets] = useState<any[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<any[]>([]);
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
-  const [ticketSearchForm] = Form.useForm();
   const [_ticketQueryParams, _setTicketQueryParams] = useState({
     sectionName: '',
     sectionContent: '',
@@ -152,7 +153,6 @@ const ReportTemplateEdit: React.FC = () => {
   const [viewAppealsVisible, setViewAppealsVisible] = useState(false);
   const [currentTicket, setCurrentTicket] = useState<any>(null);
   const [appealsData, setAppealsData] = useState<any[]>([]);
-  const [appealsSearchForm] = Form.useForm();
   const [appealsLoading, setAppealsLoading] = useState(false);
   
 
@@ -545,10 +545,211 @@ const ReportTemplateEdit: React.FC = () => {
 
   // 加载模板数据和维度指标数据
   useEffect(() => {
-    // 设置当前选中的菜单项为报告模板管理
-    setSelectedMenuKey('report-template-management');
+    console.group('🔍 [模板数据加载] useEffect开始执行');
+    console.log('⏰ 执行时间:', new Date().toISOString());
+    console.log('📋 模板ID:', id);
     
-    // 页签已由ReportTemplateManagement创建，这里不需要重复创建
+    try {
+      // 设置当前选中的菜单项为报告模板管理
+      setSelectedMenuKey('report-template-management');
+      
+      // 页签已由ReportTemplateManagement创建，这里不需要重复创建
+      
+      // 如果是编辑模式，根据模板ID加载模板数据
+      if (id) {
+        console.log('✅ 进入编辑模式，模板ID:', id);
+        
+        // 验证模板ID的有效性
+        if (typeof id !== 'string' || id.trim() === '') {
+          console.error('❌ 模板ID无效:', id);
+          message.error('模板ID无效，请检查URL参数');
+          return;
+        }
+        console.log('✅ 模板ID验证通过');
+        
+        // 读取localStorage中的模板数据
+        const templatesRaw = localStorage.getItem('reportTemplates');
+        console.log('📦 localStorage原始数据:', templatesRaw);
+        
+        // 验证localStorage数据的存在性
+        if (!templatesRaw) {
+          console.warn('⚠️ localStorage中没有模板数据');
+          message.warning('暂无模板数据，请先创建模板');
+          return;
+        }
+        console.log('✅ localStorage数据存在性验证通过');
+        
+        // 验证JSON格式
+        let existingTemplates;
+        try {
+          existingTemplates = JSON.parse(templatesRaw);
+        } catch (parseError) {
+          console.error('❌ 模板数据JSON解析失败:', parseError);
+          message.error('模板数据格式错误，请重新创建模板');
+          return;
+        }
+        console.log('✅ JSON解析验证通过');
+        
+        // 验证数据类型
+        if (!Array.isArray(existingTemplates)) {
+          console.error('❌ 模板数据不是数组格式:', typeof existingTemplates);
+          message.error('模板数据结构异常，请重新创建模板');
+          return;
+        }
+        console.log('✅ 数据类型验证通过');
+      
+      console.log('📊 解析后的模板列表:', existingTemplates);
+      console.log('📊 模板列表长度:', existingTemplates.length);
+      
+      // 查找目标模板
+      const currentTemplate = existingTemplates.find((t: any) => t.id === id);
+      console.log('🎯 查找目标模板结果:', currentTemplate);
+      
+      if (currentTemplate) {
+        console.log('✅ 找到目标模板，开始验证模板数据结构');
+        
+        // 验证模板数据结构的完整性
+        const templateValidation = {
+          hasId: typeof currentTemplate.id === 'string' && currentTemplate.id.trim() !== '',
+          hasName: typeof currentTemplate.name === 'string' && currentTemplate.name.trim() !== '',
+          hasDescription: typeof currentTemplate.description === 'string',
+          hasType: typeof currentTemplate.type === 'string' && currentTemplate.type.trim() !== '',
+          hasContentStructure: !!currentTemplate.content_structure,
+          hasRichTextContent: !!currentTemplate.content_structure?.rich_text_content
+        };
+        
+        console.log('🔍 模板数据结构验证结果:', templateValidation);
+        
+        // 检查必需字段 - 如果缺少字段，使用默认值而不是报错
+        if (!templateValidation.hasId) {
+          console.error('❌ 模板数据缺少ID字段');
+          message.error('模板ID无效，请重新创建模板');
+          return;
+        }
+        
+        // 为缺失的字段设置默认值
+        let needsUpdate = false;
+        if (!templateValidation.hasName) {
+          console.warn('⚠️ 模板缺少name字段，使用默认值');
+          currentTemplate.name = '未命名模板';
+          needsUpdate = true;
+        }
+        
+        if (!templateValidation.hasType) {
+          console.warn('⚠️ 模板缺少type字段，使用默认值');
+          currentTemplate.type = '月报';
+          needsUpdate = true;
+        }
+        
+        if (!templateValidation.hasDescription) {
+          console.warn('⚠️ 模板缺少description字段，使用默认值');
+          currentTemplate.description = '';
+          needsUpdate = true;
+        }
+        
+        // 如果补充了默认值，更新localStorage中的数据
+        if (needsUpdate) {
+          console.log('💾 补充默认值后，更新localStorage中的模板数据');
+          const templateIndex = existingTemplates.findIndex((t: any) => t.id === id);
+          if (templateIndex !== -1) {
+            existingTemplates[templateIndex] = currentTemplate;
+            localStorage.setItem('reportTemplates', JSON.stringify(existingTemplates));
+            console.log('✅ localStorage中的模板数据已更新');
+          }
+        }
+        
+        console.log('✅ 模板数据结构验证通过（已补充缺失字段）');
+        
+        console.log('📝 模板详细信息:', {
+          id: currentTemplate.id,
+          name: currentTemplate.name,
+          description: currentTemplate.description,
+          type: currentTemplate.type,
+          hasContentStructure: templateValidation.hasContentStructure,
+          hasRichTextContent: templateValidation.hasRichTextContent
+        });
+        
+        // 设置模板数据
+        setTemplateData(currentTemplate);
+        console.log('✅ 模板数据已设置到state');
+        
+        // 填充表单字段
+        const formData = {
+          name: currentTemplate.name,
+          description: currentTemplate.description,
+          type: currentTemplate.type,
+          content_structure: {
+            rich_text_content: currentTemplate.content_structure?.rich_text_content || ''
+          }
+        };
+        console.log('📝 准备填充表单数据:', formData);
+        form.setFieldsValue(formData);
+        console.log('✅ 表单字段已填充');
+        
+        // 设置编辑器内容
+        if (currentTemplate.content_structure?.rich_text_content) {
+          const editorContentToSet = currentTemplate.content_structure.rich_text_content;
+          console.log('📝 准备设置编辑器内容长度:', editorContentToSet.length);
+          console.log('📝 编辑器内容预览:', editorContentToSet.substring(0, 100) + '...');
+          setEditorContent(editorContentToSet);
+          console.log('✅ 编辑器内容已设置');
+        } else {
+          console.log('⚠️ 模板没有富文本内容');
+        }
+        
+        // 加载关联工单数据
+         try {
+           const relatedTicketsKey = `relatedTickets_${id}`;
+           console.log('🎫 关联工单存储键:', relatedTicketsKey);
+           
+           const savedRelatedTickets = localStorage.getItem(relatedTicketsKey);
+           console.log('🎫 localStorage中的关联工单原始数据:', savedRelatedTickets);
+           
+           if (savedRelatedTickets) {
+             const ticketsData = JSON.parse(savedRelatedTickets);
+             
+             // 验证关联工单数据格式
+             if (!Array.isArray(ticketsData)) {
+               console.error('❌ 关联工单数据不是数组格式:', typeof ticketsData);
+               message.warning('关联工单数据格式异常，已重置为空');
+               setRelatedTickets([]);
+               setFilteredTickets([]);
+             } else {
+               console.log('🎫 解析后的关联工单数据:', ticketsData);
+               console.log('🎫 关联工单数量:', ticketsData.length);
+               
+               setRelatedTickets(ticketsData);
+               setFilteredTickets(ticketsData);
+               console.log('✅ 关联工单数据已设置到state');
+             }
+           } else {
+             console.log('⚠️ 没有找到关联工单数据');
+             setRelatedTickets([]);
+             setFilteredTickets([]);
+           }
+         } catch (ticketError) {
+           console.error('❌ 关联工单数据处理失败:', ticketError);
+           message.warning('关联工单数据加载失败，已重置为空');
+           setRelatedTickets([]);
+           setFilteredTickets([]);
+         }
+         
+         console.log('🎉 模板数据加载完成');
+       } else {
+         console.log('❌ 未找到对应的模板数据');
+         console.log('🔍 可用的模板ID列表:', existingTemplates.map((t: any) => t.id));
+         message.warning(`未找到ID为 ${id} 的模板，请检查模板是否存在`);
+       }
+     } else {
+       console.log('📝 新增模式，跳过数据加载');
+     }
+     
+    } catch (globalError) {
+      console.error('❌ 模板数据加载过程中发生未预期的错误:', globalError);
+      message.error('模板数据加载失败，请刷新页面重试');
+    } finally {
+      console.groupEnd();
+    }
     
     // 从localStorage加载维度数据
     loadDimensionsData();
@@ -588,42 +789,19 @@ const ReportTemplateEdit: React.FC = () => {
       console.error('加载指标数据失败:', error);
     }
     
-    if (id) {
-      // 模拟加载模板数据
-      const mockTemplate: ReportTemplate = {
-        id: id,
-        name: '月度工单分析报告',
-        description: '分析月度工单处理情况',
-        type: '月报',
-        content_structure: {
-          rich_text_content: '<h2>月度工单分析报告</h2>\n<p>报告期间：{{时间范围}}</p>\n<p>总工单数：{{总工单数}}</p>',
-          embedded_dimensions: []
-        },
-        is_published: false,
-        created_at: '2024-01-15 10:30:00',
-        created_by: 'admin',
-        updated_at: '2024-01-15 10:30:00',
-        updated_by: 'admin'
-      };
-      
-      setTemplateData(mockTemplate);
-      const initialContent = mockTemplate.content_structure.rich_text_content;
-      setEditorContent(initialContent);
-      form.setFieldsValue({
-        name: mockTemplate.name,
-        description: mockTemplate.description,
-        type: mockTemplate.type ? [mockTemplate.type] : [],
-        content: initialContent
-      });
-    } else {
-      // 新增模式：初始化表单
+    // 新增模式：初始化表单
+    if (!id) {
       setEditorContent('');
+      console.log('🔄 新增模式：重置表单字段');
       form.setFieldsValue({
         name: '',
         description: '',
-        type: [],
-        content: ''
+        type: '月报',
+        content_structure: {
+          rich_text_content: ''
+        }
       });
+      console.log('✅ 表单字段已重置为默认值');
     }
   }, [id, form, setSelectedMenuKey]);
 
@@ -649,7 +827,14 @@ const ReportTemplateEdit: React.FC = () => {
   // 保存模板
   const handleSave = async () => {
     try {
+      console.log('🚀 开始保存模板...');
+      console.log('📝 当前编辑器内容:', editorContent);
+      console.log('📋 当前表单所有字段值:', form.getFieldsValue());
+      
       const values = await form.validateFields();
+      console.log('💾 表单验证通过，获取到的values:', values);
+      console.log('🔍 values中的content_structure:', values.content_structure);
+      
       setLoading(true);
       
       // 模拟API调用，实际保存到localStorage
@@ -657,6 +842,8 @@ const ReportTemplateEdit: React.FC = () => {
       
       // 获取现有模板数据
       const existingTemplates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
+      
+      let templateId = id;
       
       if (id) {
         // 编辑模式：更新现有模板
@@ -671,18 +858,24 @@ const ReportTemplateEdit: React.FC = () => {
         }
       } else {
         // 新增模式：创建新模板
+        templateId = Date.now().toString();
         const newTemplate = {
-          id: Date.now().toString(),
+          id: templateId,
           ...values,
           is_published: false,
           created_at: new Date().toISOString(),
           created_by: '管理员'
         };
+        console.log('🆕 创建的新模板对象:', newTemplate);
         existingTemplates.push(newTemplate);
       }
       
       // 保存到localStorage
       localStorage.setItem('reportTemplates', JSON.stringify(existingTemplates));
+      
+      // 保存关联工单数据
+      const relatedTicketsKey = `relatedTickets_${templateId}`;
+      localStorage.setItem(relatedTicketsKey, JSON.stringify(relatedTickets));
       
       // 触发模板列表更新事件
       window.dispatchEvent(new CustomEvent('templatesUpdated'));
@@ -824,7 +1017,7 @@ const ReportTemplateEdit: React.FC = () => {
   const tabItems = [
     {
       key: 'edit',
-      label: '报告编辑',
+      label: '模板编辑',
     },
     {
       key: 'workorder',
@@ -1485,6 +1678,11 @@ const ReportTemplateEdit: React.FC = () => {
                     <Input placeholder="请输入模板描述" style={{ width: '100%' }} />
                   </Form.Item>
                 </div>
+                
+                {/* 富文本编辑器字段 - 隐藏的表单项 */}
+                <Form.Item name={["content_structure", "rich_text_content"]} style={{ display: 'none' }}>
+                  <Input />
+                </Form.Item>
               </Form>
             </div>
           )}
@@ -1533,9 +1731,7 @@ const ReportTemplateEdit: React.FC = () => {
                     <h3 className="text-sm font-medium text-[#223355] m-0">模板编辑</h3>
                   </div>
                   <div className="flex-1 overflow-hidden" style={{ padding: '20px 20px 20px 20px', display: 'flex', flexDirection: 'column' }}>
-                    <Form form={form} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      <Form.Item name="content" style={{ flex: 1, marginBottom: 0 }}>
-                        <div className="relative" style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}>
+                        <div className="relative" style={{ height: 'calc(100vh - 400px)', minHeight: '300px', flex: 1 }}>
                           <TextArea
                             ref={editorRef}
                             placeholder="onlyoffice没法调用，搞个编辑框示意一下"
@@ -1545,7 +1741,11 @@ const ReportTemplateEdit: React.FC = () => {
                             onChange={(e) => {
                               const newValue = e.target.value;
                               setEditorContent(newValue);
-                              form.setFieldsValue({ content: newValue });
+                              form.setFieldsValue({ 
+                                content_structure: {
+                                  rich_text_content: newValue
+                                }
+                              });
                             }}
                             onMouseUp={handleTextSelect}
                             onBlur={handleClickOutside}
@@ -1568,8 +1768,6 @@ const ReportTemplateEdit: React.FC = () => {
                           </div>
                         )}
                         </div>
-                      </Form.Item>
-                    </Form>
                   </div>
                 </div>
               </>
@@ -1655,8 +1853,9 @@ const ReportTemplateEdit: React.FC = () => {
                               selectedRowKeys: selectedTicketIds,
                               onChange: (selectedRowKeys) => {
                                 setSelectedTicketIds(selectedRowKeys as string[]);
-                          },
-                        }}
+                              },
+                              columnWidth: '5%',
+                            }}
                         rowKey="id"
                         locale={{
                           emptyText: '暂无关联章节数据'
@@ -1714,13 +1913,7 @@ const ReportTemplateEdit: React.FC = () => {
                             width="18%"
                             ellipsis
                           />
-                          <Column
-                            title="章节内容"
-                            dataIndex="sectionContent"
-                            key="sectionContent"
-                            width="23%"
-                            ellipsis
-                          />
+
                           <Column
                             title="章节级别"
                             dataIndex="sectionLevel"
@@ -1791,7 +1984,20 @@ const ReportTemplateEdit: React.FC = () => {
           "bg-white border-l border-[#E9ECF2] transition-all duration-300 flex flex-col",
           previewVisible ? "w-96" : "w-12"
         )}>
-
+          {previewVisible && (
+            <div className="px-5 py-4 border-b border-[#E9ECF2] flex items-center justify-between">
+              <h3 className="text-sm font-medium text-[#223355] m-0">预览</h3>
+              <div className="flex gap-2">
+                <Button
+                  type="text"
+                  icon={<EyeInvisibleOutlined />}
+                  onClick={() => setPreviewVisible(false)}
+                >
+                  收起预览
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex-1 overflow-auto" style={{ padding: previewVisible ? '20px' : '8px' }}>
             {!previewVisible ? (
               <div className="h-full flex flex-col items-center justify-center">
@@ -1970,21 +2176,7 @@ const ReportTemplateEdit: React.FC = () => {
               </Col>
             </Row>
             
-            {/* 第二行：章节内容 */}
-            <Row>
-              <Col span={24}>
-                <Form.Item
-                  label="章节内容"
-                  name="sectionContent"
-                  rules={[{ required: true, message: '请输入章节内容' }]}
-                >
-                  <TextArea 
-                    placeholder="请输入章节内容" 
-                    rows={3}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
+
             
             {/* 第三行：备注 */}
             <Row>
