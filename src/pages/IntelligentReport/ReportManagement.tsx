@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { Card, Input, Button, DatePicker, Checkbox, message, Modal, Tree, Empty, Pagination, Select, Progress } from 'antd';
-import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, ExportOutlined, FolderOutlined, FileTextOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Card, Input, Button, DatePicker, Checkbox, message, Modal, Tree, Empty, Pagination } from 'antd';
+import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, ExportOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { TreeDataNode } from 'antd';
 import { Report, ReportQuery } from '@/types';
@@ -69,11 +69,11 @@ interface ReportCategory {
 }
 import { cn } from '@/utils';
 import dayjs from 'dayjs';
-import { useAppStore } from '@/store';
-import ReportGenerationProgress from '@/components/ReportGenerationProgress';
+// import { useAppStore } from '@/store';
+// import ReportGenerationProgress from '@/components/ReportGenerationProgress';
 
 const { RangePicker } = DatePicker;
-const { Option } = Select;
+// const { Option } = Select;
 
 // 优化的报告卡片组件，使用memo避免不必要的重新渲染
 const ReportCard = memo(({ 
@@ -85,8 +85,8 @@ const ReportCard = memo(({
   handleViewReport, 
   handleEditReport, 
   handleDeleteReport,
-  getCategoryName,
-  formatDate 
+  // getCategoryName,
+  // formatDate 
 }: {
   report: ExtendedReport;
   index: number;
@@ -168,7 +168,7 @@ const ReportCard = memo(({
           
           {/* 报告标题 */}
           <h3 className="text-base font-medium text-[#24292F] flex-1">
-            {report.title || report.name}
+            {report.name}
           </h3>
         </div>
         
@@ -228,7 +228,7 @@ const ReportCard = memo(({
     prevProps.report.status === nextProps.report.status &&
     prevProps.report.report_status === nextProps.report.report_status &&
     prevProps.report.name === nextProps.report.name &&
-    prevProps.report.title === nextProps.report.title &&
+    // prevProps.report.title === nextProps.report.title &&
     prevProps.selectedReports.includes(prevProps.report.id) === nextProps.selectedReports.includes(nextProps.report.id) &&
     prevProps.index === nextProps.index
     // 移除回调函数比较，因为它们的引用变化不应该触发重渲染
@@ -253,14 +253,13 @@ const ReportManagement: React.FC = () => {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 12, total: 0 });
   
   // 获取报告生成状态管理
-  const {
+  /* const {
     reportGenerationTasks,
     startReportGeneration,
     updateReportProgress,
     completeReportGeneration,
-    failReportGeneration,
     getReportTask
-  } = useAppStore();
+  } = useAppStore(); */
 
   // 模拟多层级分类数据（完全照搬维度管理）
   const mockCategories: ReportCategory[] = [
@@ -286,7 +285,7 @@ const ReportManagement: React.FC = () => {
     {
       id: '1',
       name: '2024年第一季度客户投诉分析报告',
-      title: '2024年第一季度客户投诉分析报告',
+      // title: '2024年第一季度客户投诉分析报告',
       description: '针对第一季度客户投诉情况的详细分析',
       type: '季报',
       category_id: '9',
@@ -310,7 +309,7 @@ const ReportManagement: React.FC = () => {
     {
       id: '2',
       name: '2024年1月客户满意度报告',
-      title: '2024年1月客户满意度报告',
+      // title: '2024年1月客户满意度报告',
       description: '1月份客户满意度调查结果分析',
       type: '月报',
       category_id: '8',
@@ -333,7 +332,7 @@ const ReportManagement: React.FC = () => {
     {
       id: '3',
       name: '2024年度服务质量专题报告',
-      title: '2024年度服务质量专题报告',
+      // title: '2024年度服务质量专题报告',
       description: '全年服务质量综合分析报告',
       type: '专题报告',
       category_id: '10',
@@ -415,37 +414,37 @@ const ReportManagement: React.FC = () => {
       
       // 按目录过滤
       if (selectedCategoryId !== 'all') {
-        filteredReports = filteredReports.filter(report => report.category_id === selectedCategoryId);
+        filteredReports = filteredReports.filter((report: ExtendedReport) => report.category_id === selectedCategoryId);
       }
       
       // 按查询条件过滤
       if (queryParams.name) {
-        filteredReports = filteredReports.filter(report => 
-          report.name.toLowerCase().includes(queryParams.name!.toLowerCase())
+        filteredReports = filteredReports.filter((report: ExtendedReport) =>
+          report.name.toLowerCase().includes(queryParams.name?.toLowerCase() || '')
         );
       }
       
       if (queryParams.description) {
-        filteredReports = filteredReports.filter(report => 
-          report.description?.toLowerCase().includes(queryParams.description!.toLowerCase())
+        filteredReports = filteredReports.filter((report: ExtendedReport) =>
+          report.description?.toLowerCase().includes(queryParams.description?.toLowerCase() || '')
         );
       }
       
-      if (queryParams.template_name) {
-        filteredReports = filteredReports.filter(report => 
-          report.template_name.toLowerCase().includes(queryParams.template_name!.toLowerCase())
-        );
-      }
+      // if (queryParams.template_name) {
+      //   filteredReports = filteredReports.filter(report =>
+      //     report.template_name.toLowerCase().includes(queryParams.template_name!.toLowerCase())
+      //   );
+      // }
       
       if (queryParams.created_date_start && queryParams.created_date_end) {
-        filteredReports = filteredReports.filter(report => {
+        filteredReports = filteredReports.filter((report: ExtendedReport) => {
           const reportDate = dayjs(report.created_at).format('YYYY-MM-DD');
           return reportDate >= queryParams.created_date_start! && reportDate <= queryParams.created_date_end!;
         });
       }
       
       // 排序：生成中的报告置顶，其余按创建时间倒序
-      filteredReports.sort((a, b) => {
+      filteredReports.sort((a: ExtendedReport, b: ExtendedReport) => {
         if (a.status === 'generating' && b.status !== 'generating') return -1;
         if (a.status !== 'generating' && b.status === 'generating') return 1;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -533,72 +532,72 @@ const ReportManagement: React.FC = () => {
   };
 
   // 模拟生成报告
-  const handleGenerateReport = async (reportId: string) => {
-    try {
-      setLoading(true);
-      
-      // 启动报告生成任务
-      startReportGeneration(reportId);
-      
-      // 更新报告状态为生成中
-      setReports(prev => prev.map(report => 
-        report.id === reportId 
-          ? { ...report, status: 'generating', progress: 0 }
-          : report
-      ));
-      
-      message.success('报告生成任务已启动');
-      
-      // 模拟生成进度
-      simulateProgress(reportId);
-    } catch (error) {
-      message.error('启动报告生成失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const handleGenerateReport = async (reportId: string) => {
+  //   try {
+  //     setLoading(true);
+  //     
+  //     // 启动报告生成任务
+  //     startReportGeneration(reportId);
+  //     
+  //     // 更新报告状态为生成中
+  //     setReports(prev => prev.map(report => 
+  //       report.id === reportId 
+  //         ? { ...report, status: 'generating', progress: 0 }
+  //         : report
+  //     ));
+  //     
+  //     message.success('报告生成任务已启动');
+  //     
+  //     // 模拟生成进度
+  //     simulateProgress(reportId);
+  //   } catch (error) {
+  //     message.error('启动报告生成失败');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
 
   
   // 优化的进度更新函数，减少不必要的重渲染
-  const debouncedUpdateProgress = useCallback((reportId: string, newProgress: number) => {
-    setReports(prev => {
-      const reportIndex = prev.findIndex(report => report.id === reportId);
-      if (reportIndex === -1) return prev;
-      
-      const currentReport = prev[reportIndex];
-      if (currentReport.progress === newProgress) return prev;
-      
-      // 使用map而不是展开运算符，只更新目标报告
-      const updatedReports = prev.map((report, index) => {
-        if (index !== reportIndex) return report; // 保持原对象引用
-        
-        return {
-          ...report,
-          progress: newProgress,
-          ...(newProgress >= 100 && {
-            status: 'generated',
-            report_status: 'generated'
-          })
-        };
-      });
-      
-      // 延迟更新localStorage，避免频繁IO操作
-      setTimeout(() => {
-        localStorage.setItem('reports', JSON.stringify(updatedReports));
-      }, 100);
-      
-      return updatedReports;
-    });
-  }, []);
+  // const debouncedUpdateProgress = useCallback((reportId: string, newProgress: number) => {
+  //   setReports(prev => {
+  //     const reportIndex = prev.findIndex(report => report.id === reportId);
+  //     if (reportIndex === -1) return prev;
+  //     
+  //     const currentReport = prev[reportIndex];
+  //     if (currentReport.progress === newProgress) return prev;
+  //     
+  //     // 使用map而不是展开运算符，只更新目标报告
+  //     const updatedReports = prev.map((report, index) => {
+  //       if (index !== reportIndex) return report; // 保持原对象引用
+  //       
+  //       return {
+  //         ...report,
+  //         progress: newProgress,
+  //         ...(newProgress >= 100 && {
+  //           status: 'completed' as 'completed',
+  //           report_status: 'generated' as 'generated'
+  //         })
+  //       };
+  //     });
+  //     
+  //     // 延迟更新localStorage，避免频繁IO操作
+  //     setTimeout(() => {
+  //       localStorage.setItem('reports', JSON.stringify(updatedReports));
+  //     }, 100);
+  //     
+  //     return updatedReports;
+  //   });
+  // }, []);
 
   // 模拟生成报告提交后的状态管理
-  const handleReportSubmit = (reportData: any) => {
+  /* const handleReportSubmit = (reportData: any) => {
     // 创建新的生成中报告记录
     const newReport: ExtendedReport = {
       id: Date.now().toString(),
       name: reportData.title || '新生成报告',
-      title: reportData.title || '新生成报告',
+      // title: reportData.title || '新生成报告',
       description: reportData.description || '新生成的报告',
       type: reportData.type || '自定义报告',
       category_id: reportData.category_id || '1',
@@ -651,10 +650,10 @@ const ReportManagement: React.FC = () => {
         }
       }
     }, 2500); // 增加间隔到2.5秒，进一步减少更新频率
-  };
+  }; */
 
   // 模拟进度更新
-  const simulateProgress = (reportId: string) => {
+  /* const simulateProgress = (reportId: string) => {
     let progress = 0;
     const interval = setInterval(() => {
       progress += Math.random() * 20;
@@ -682,10 +681,10 @@ const ReportManagement: React.FC = () => {
         ));
       }
     }, 500);
-  };
+  }; */
 
   // 批量生成报告
-  const handleBatchGenerate = async () => {
+  /* const handleBatchGenerate = async () => {
     if (selectedReports.length === 0) {
       message.warning('请选择要生成的报告');
       return;
@@ -723,7 +722,7 @@ const ReportManagement: React.FC = () => {
         }
       }
     });
-  };
+  }; */
 
 
 
@@ -1261,8 +1260,10 @@ const ReportManagement: React.FC = () => {
                 <span className="text-gray-600 whitespace-nowrap">报告模板:</span>
                 <Input
                   placeholder="请输入报告模板"
-                  value={queryParams.template_name}
-                  onChange={(e) => setQueryParams(prev => ({ ...prev, template_name: e.target.value }))}
+                  // value={queryParams.template_id}
+                  // onChange={(e) => setQueryParams(prev => ({ ...prev, template_id: e.target.value }))}
+                  value=""
+                  onChange={() => {}}
                   style={{ width: '200px' }}
                   allowClear
                 />
@@ -1393,7 +1394,7 @@ const ReportManagement: React.FC = () => {
               onChange={(page, pageSize) => {
                 setPagination(prev => ({ ...prev, current: page, pageSize }));
               }}
-              onShowSizeChange={(current, size) => {
+              onShowSizeChange={(_current, size) => {
                 setPagination(prev => ({ ...prev, current: 1, pageSize: size }));
               }}
               showSizeChanger

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { TabItem, Report } from '@/types';
+import { TabItem } from '@/types';
 
 // 报告模板接口
 interface ReportTemplate {

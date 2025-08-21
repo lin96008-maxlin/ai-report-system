@@ -56,22 +56,22 @@ const DimensionManagement: React.FC = () => {
       name: '工单总体概况分析',
       description: '对工单总体情况进行分析，包括数量、趋势等',
       category_id: '1',
-      content_items: [
+      content_structure: {
+        level1Contents: [
         {
           id: '1-1',
           title: '工单数量统计',
           content: '本月共接收工单1,234件，较上月增长15%',
-          order: 1,
-          level: 1
+          order: 1
         },
         {
           id: '1-2',
           title: '工单趋势分析',
           content: '工单数量呈现稳步上升趋势，主要集中在周一至周三',
-          order: 2,
-          level: 1
+          order: 2
         }
-      ],
+        ]
+      },
       created_at: '2024-01-15 10:30:00',
       created_by: '张三',
       updated_at: '2024-01-20 14:20:00',
@@ -82,22 +82,22 @@ const DimensionManagement: React.FC = () => {
       name: '处置效率分析',
       description: '分析各处置单位的工单处理效率和质量',
       category_id: '2',
-      content_items: [
+      content_structure: {
+        level1Contents: [
         {
           id: '2-1',
           title: '平均处理时长',
           content: '工单平均处理时长为2.5小时，符合服务标准',
-          order: 1,
-          level: 1
+          order: 1
         },
         {
           id: '2-2',
           title: '处理质量评估',
           content: '处理质量评分平均为4.2分（满分5分），整体表现良好',
-          order: 2,
-          level: 1
+          order: 2
         }
-      ],
+        ]
+      },
       created_at: '2024-01-16 09:15:00',
       created_by: '王五',
       updated_at: '2024-01-18 16:45:00',
@@ -108,22 +108,22 @@ const DimensionManagement: React.FC = () => {
       name: '问题分类统计',
       description: '按问题类型对工单进行分类统计分析',
       category_id: '3',
-      content_items: [
+      content_structure: {
+        level1Contents: [
         {
           id: '3-1',
           title: '问题类型分布',
           content: '技术问题占45%，服务问题占35%，其他问题占20%',
-          order: 1,
-          level: 1
+          order: 1
         },
         {
           id: '3-2',
           title: '高频问题分析',
           content: '网络连接问题和系统故障是最常见的两类问题',
-          order: 2,
-          level: 1
+          order: 2
         }
-      ],
+        ]
+      },
       created_at: '2024-01-17 11:20:00',
       created_by: '孙七',
       updated_at: '2024-01-19 13:30:00',
@@ -134,22 +134,22 @@ const DimensionManagement: React.FC = () => {
       name: '满意度分析',
       description: '分析用户对工单处理结果的满意度情况',
       category_id: '1',
-      content_items: [
+      content_structure: {
+        level1Contents: [
         {
           id: '4-1',
           title: '整体满意度',
           content: '用户整体满意度为88%，较上月提升3个百分点',
-          order: 1,
-          level: 1
+          order: 1
         },
         {
           id: '4-2',
           title: '改进建议',
           content: '用户主要建议加快响应速度和提高解决方案的准确性',
-          order: 2,
-          level: 1
+          order: 2
         }
-      ],
+        ]
+      },
       created_at: '2024-01-18 14:10:00',
       created_by: '吴九',
       updated_at: '2024-01-21 10:15:00',

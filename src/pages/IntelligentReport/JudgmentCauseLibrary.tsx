@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Button, DatePicker, Checkbox, message, Modal, Tree, Empty, Pagination, Tabs, Select, Tag, Form } from 'antd';
+import { Card, Input, Button, DatePicker, Checkbox, message, Modal, Tree, Empty, Pagination, Tabs, Select, Tag } from 'antd';
 import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { TreeDataNode } from 'antd';
 import { cn } from '@/utils';
@@ -7,7 +7,7 @@ import { cn } from '@/utils';
 const { RangePicker } = DatePicker;
 const { TabPane } = Tabs;
 const { Option } = Select;
-const { TextArea } = Input;
+// const { TextArea } = Input;
 
 // 定义数据类型
 interface Problem {
@@ -59,7 +59,7 @@ const JudgmentCauseLibrary: React.FC = () => {
   const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
   const [problems, setProblems] = useState<Problem[]>([]);
   const [categories, setCategories] = useState<ProblemCategory[]>([]);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
@@ -92,18 +92,18 @@ const JudgmentCauseLibrary: React.FC = () => {
   
   // Tab2 项目案例相关状态
   const [cases, setCases] = useState<Case[]>([]);
-  const [selectedCases, setSelectedCases] = useState<string[]>([]);
-  const [caseSearchForm, setCaseSearchForm] = useState({
-    title: '',
-    tags: '',
-    dateRange: null as any,
-    creator: ''
-  });
-  const [casePagination, setCasePagination] = useState({
-    current: 1,
-    pageSize: 12,
-    total: 0
-  });
+  // const [selectedCases, setSelectedCases] = useState<string[]>([]);
+  // const [caseSearchForm, setCaseSearchForm] = useState({
+  //   title: '',
+  //   tags: '',
+  //   dateRange: null as any,
+  //   creator: ''
+  // });
+  // const [casePagination, setCasePagination] = useState({
+  //   current: 1,
+  //   pageSize: 12,
+  //   total: 0
+  // });
   
   // 案例编辑弹窗相关状态
   const [caseModalVisible, setCaseModalVisible] = useState(false);
@@ -402,9 +402,9 @@ const JudgmentCauseLibrary: React.FC = () => {
 
   // 处理搜索
   const handleSearch = () => {
-    setLoading(true);
+    // setLoading(true);
     setTimeout(() => {
-      setLoading(false);
+      // setLoading(false);
       message.success('查询完成');
     }, 500);
   };
@@ -937,7 +937,7 @@ const JudgmentCauseLibrary: React.FC = () => {
                           {caseItem.tags.length > 0 && (
                             <div className="mt-2">
                               {caseItem.tags.map(tag => (
-                                <Tag key={tag} size="small" className="mb-1">{tag}</Tag>
+                                <span key={tag} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mb-1 mr-1">{tag}</span>
                               ))}
                             </div>
                           )}

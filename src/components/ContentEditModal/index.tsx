@@ -91,7 +91,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
     }
   });
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'indicators' | 'dimensions'>('indicators');
+  const [activeTab] = useState<'indicators' | 'dimensions'>('indicators');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const textAreaRef = useRef<any>(null);
 

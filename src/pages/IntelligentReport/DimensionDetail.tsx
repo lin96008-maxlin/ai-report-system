@@ -297,51 +297,51 @@ const DimensionDetail: React.FC = () => {
   };
 
   // 模拟数据
-  const mockContentItems: ContentItem[] = [
-    {
-      id: '1',
-      title: '总体概况',
-      content: '本月共接收工单{{工单总量}}件，较上月{{环比增长率}}。',
-      order: 1,
-      level: 1,
-      children: [
-        {
-          id: '1-1',
-          title: '工单数量统计',
-          content: '按来源分类：微信{{微信工单数}}件，电话{{电话工单数}}件。',
-          order: 1,
-          level: 2,
-          parent_id: '1',
-          children: [
-            {
-              id: '1-1-1',
-              title: '微信渠道详情',
-              content: '微信渠道工单主要集中在{{主要问题类型}}，占比{{占比百分比}}。',
-              order: 1,
-              level: 3,
-              parent_id: '1-1'
-            }
-          ]
-        },
-        {
-          id: '1-2',
-          title: '处理效率分析',
-          content: '平均处理时长{{平均处理时长}}小时，满意度{{满意度评分}}分。',
-          order: 2,
-          level: 2,
-          parent_id: '1'
-        }
-      ]
-    },
-    {
-      id: '2',
-      title: '趋势分析',
-      content: '工单数量呈现{{趋势描述}}趋势，预计下月{{预测数据}}。',
-      order: 2,
-      level: 1,
-      children: []
-    }
-  ];
+  // const mockContentItems: ContentItem[] = [
+  //   {
+  //     id: '1',
+  //     title: '总体概况',
+  //     content: '本月共接收工单{{工单总量}}件，较上月{{环比增长率}}。',
+  //     order: 1,
+  //     level: 1,
+  //     children: [
+  //       {
+  //         id: '1-1',
+  //         title: '工单数量统计',
+  //         content: '按来源分类：微信{{微信工单数}}件，电话{{电话工单数}}件。',
+  //         order: 1,
+  //         level: 2,
+  //         parent_id: '1',
+  //         children: [
+  //           {
+  //             id: '1-1-1',
+  //             title: '微信渠道详情',
+  //             content: '微信渠道工单主要集中在{{主要问题类型}}，占比{{占比百分比}}。',
+  //             order: 1,
+  //             level: 3,
+  //             parent_id: '1-1'
+  //           }
+  //         ]
+  //       },
+  //       {
+  //         id: '1-2',
+  //         title: '处理效率分析',
+  //         content: '平均处理时长{{平均处理时长}}小时，满意度{{满意度评分}}分。',
+  //         order: 2,
+  //         level: 2,
+  //         parent_id: '1'
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     id: '2',
+  //     title: '趋势分析',
+  //     content: '工单数量呈现{{趋势描述}}趋势，预计下月{{预测数据}}。',
+  //     order: 2,
+  //     level: 1,
+  //     children: []
+  //   }
+  // ];
 
   useEffect(() => {
     if (id) {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, Select, TreeSelect, Tabs, Table, Modal, Form, DatePicker, Tag, Space, Dropdown, Menu, Radio, message } from 'antd';
+import { Button, Input, Select, TreeSelect, Tabs, Table, Modal, Form, DatePicker, Space, Radio, message } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Report, ReportTemplate, ReportCategory, ReportFilters } from '@/types';
+import { Report, ReportCategory, ReportFilters } from '@/types';
 import dayjs from 'dayjs';
 import { useAppStore } from '@/store';
 
@@ -28,7 +28,7 @@ const ReportEdit: React.FC = () => {
   // 获取报告生成状态管理
   const { startReportGeneration } = useAppStore();
   const [activeTab, setActiveTab] = useState('basic');
-  const [report, setReport] = useState<Report | null>(null);
+  // const [report, setReport] = useState<Report | null>(null);
   const [reportContent, setReportContent] = useState('');
   
   // 关联工单相关状态
@@ -62,10 +62,11 @@ const ReportEdit: React.FC = () => {
       appeal_tags: []
     }
   });
-  const [templates, setTemplates] = useState<ReportTemplate[]>([]);
+  // const [templates, setTemplates] = useState<ReportTemplate[]>([]);
   const [categories, setCategories] = useState<ReportCategory[]>([]);
 
   // 模拟数据
+  /*
   const mockTemplates: ReportTemplate[] = [
     {
       id: 'template_1',
@@ -94,6 +95,7 @@ const ReportEdit: React.FC = () => {
       created_by: '系统管理员'
     }
   ];
+  */
 
   const mockCategories: ReportCategory[] = [
     { id: 'daily', name: '日报', created_at: '', created_by: '' },
@@ -110,19 +112,22 @@ const ReportEdit: React.FC = () => {
     name: '2024年1月客户投诉分析报告',
     template_id: 'template_1',
     description: '本报告分析了2024年1月份的客户投诉情况，包括投诉来源、性质、处理情况等。',
+    type: '专题报告',
+    content: '',
+    associated_work_orders: [],
     status: 'completed',
     progress: 100,
-    generated_content: `
-      <div style="padding: 20px; font-family: 'Microsoft YaHei', sans-serif;">
-        <h1 style="text-align: center; color: #223355; margin-bottom: 30px;">2024年1月客户投诉分析报告</h1>
+    // generated_content: `
+      // <div style="padding: 20px; font-family: 'Microsoft YaHei', sans-serif;">
+        // <h1 style="text-align: center; color: #223355; margin-bottom: 30px;">2024年1月客户投诉分析报告</h1>
         
-        <h2 style="color: #223355; border-bottom: 2px solid #3388FF; padding-bottom: 5px;">一、报告概述</h2>
-        <p style="line-height: 1.8; margin-bottom: 20px;">本报告基于2024年1月1日至1月31日期间收集的客户投诉数据，通过多维度分析，深入了解客户投诉的分布特征、处理效率和满意度情况。</p>
+        // <h2 style="color: #223355; border-bottom: 2px solid #3388FF; padding-bottom: 5px;">一、报告概述</h2>
+        // <p style="line-height: 1.8; margin-bottom: 20px;">本报告基于2024年1月1日至1月31日期间收集的客户投诉数据，通过多维度分析，深入了解客户投诉的分布特征、处理效率和满意度情况。</p>
         
-        <h2 style="color: #223355; border-bottom: 2px solid #3388FF; padding-bottom: 5px;">二、数据统计</h2>
-        <p style="line-height: 1.8; margin-bottom: 20px;">本月共收到投诉1,245件，已办结1,156件，办结率达92.8%。</p>
-      </div>
-    `,
+        // <h2 style="color: #223355; border-bottom: 2px solid #3388FF; padding-bottom: 5px;">二、数据统计</h2>
+        // <p style="line-height: 1.8; margin-bottom: 20px;">本月共收到投诉1,245件，已办结1,156件，办结率达92.8%。</p>
+      // </div>
+    // `,
     filters: {
       report_time_start: '2024-01-01',
       report_time_end: '2024-01-31',
@@ -158,7 +163,7 @@ const ReportEdit: React.FC = () => {
     try {
       // 模拟API调用
       await new Promise(resolve => setTimeout(resolve, 500));
-      setReport(mockReport);
+      // setReport(mockReport);
       
       // 初始化表单数据
       setForm({
@@ -246,7 +251,7 @@ const ReportEdit: React.FC = () => {
     try {
       // 模拟API调用
       await new Promise(resolve => setTimeout(resolve, 300));
-      setTemplates(mockTemplates);
+      // setTemplates(mockTemplates);
     } catch (error) {
       message.error('加载模板列表失败');
     }
@@ -503,7 +508,7 @@ const ReportEdit: React.FC = () => {
                   pagination={false}
                   rowSelection={{
                     selectedRowKeys,
-                    onChange: setSelectedRowKeys
+                    onChange: (selectedRowKeys: React.Key[]) => setSelectedRowKeys(selectedRowKeys as string[])
                   }}
                   columns={[
                       {

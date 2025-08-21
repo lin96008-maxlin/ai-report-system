@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Tabs, Tag, Descriptions, message, Card, Empty } from 'antd';
-import { ArrowLeftOutlined, EditOutlined, DownloadOutlined, PrinterOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Report } from '@/types';
-import dayjs from 'dayjs';
 
 const { TabPane } = Tabs;
 
@@ -17,13 +16,15 @@ const ReportView: React.FC = () => {
   // 模拟报告数据
   const mockReport: Report = {
     id: id || 'report_1',
-    category_id: 'monthly',
     name: '2024年1月客户投诉分析报告',
-    template_id: 'template_1',
     description: '本报告分析了2024年1月份的客户投诉情况，包括投诉来源、性质、处理情况等，为改进服务质量提供数据支撑。',
+    type: '月报',
+    category_id: 'monthly',
+    category_name: '月度报告',
+    template_id: 'template_1',
+    template_name: '投诉分析模板',
     status: 'completed',
-    progress: 100,
-    generated_content: `
+    content: `
       <div style="padding: 20px; font-family: 'Microsoft YaHei', sans-serif;">
         <h1 style="text-align: center; color: #223355; margin-bottom: 30px;">2024年1月客户投诉分析报告</h1>
         
@@ -125,15 +126,17 @@ const ReportView: React.FC = () => {
       appeal_item: ['环境卫生'],
       appeal_tags: ['重复投诉']
     },
+    associated_work_orders: [],
     created_at: '2024-01-15 10:30:00',
     created_by: '张三',
     updated_at: '2024-01-15 14:20:00',
-    updated_by: '张三'
-  };
+    updated_by: '张三',
+    progress: 100
+   };
 
-  useEffect(() => {
-    loadReportData();
-  }, [id]);
+   useEffect(() => {
+     loadReportData();
+   }, [id]);
 
   const loadReportData = async () => {
     if (!id) return;
@@ -158,31 +161,32 @@ const ReportView: React.FC = () => {
     message.success('报告下载功能开发中...');
   };
 
-  const handlePrint = () => {
-    if (report?.generated_content) {
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>${report.name}</title>
-              <style>
-                body { margin: 0; padding: 20px; font-family: 'Microsoft YaHei', sans-serif; }
-                @media print {
-                  body { margin: 0; }
-                }
-              </style>
-            </head>
-            <body>
-              ${report.generated_content}
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
-      }
-    }
-  };
+  // const handlePrint = () => {
+  //   if (report?.content) {
+  //     const printWindow = window.open('', '_blank');
+  //     if (printWindow) {
+  //       printWindow.document.write(`
+  //         <!DOCTYPE html>
+  //         <html>
+  //           <head>
+  //             <title>打印报告</title>
+  //             <style>
+  //               body { font-family: 'Microsoft YaHei', sans-serif; margin: 20px; }
+  //               @media print {
+  //                 body { margin: 0; }
+  //               }
+  //             </style>
+  //           </head>
+  //           <body>
+  //             ${report.content}
+  //           </body>
+  //         </html>
+  //       `);
+  //       printWindow.document.close();
+  //       printWindow.print();
+  //     }
+  //   }
+  // };
 
   const handleBack = () => {
     navigate('/report');
@@ -192,7 +196,6 @@ const ReportView: React.FC = () => {
     switch (status) {
       case 'completed': return 'green';
       case 'generating': return 'blue';
-      case 'failed': return 'red';
       default: return 'default';
     }
   };
@@ -201,7 +204,6 @@ const ReportView: React.FC = () => {
     switch (status) {
       case 'completed': return '已完成';
       case 'generating': return '生成中';
-      case 'failed': return '生成失败';
       default: return '草稿';
     }
   };
@@ -256,24 +258,16 @@ const ReportView: React.FC = () => {
       <div className="flex-1 px-5 pb-5 overflow-auto">
         {activeTab === 'preview' && (
           <div className="h-full">
-            {report.status === 'completed' && report.generated_content ? (
+            {report.status === 'completed' && report.content ? (
               <div 
                 className="bg-white border border-[#E9ECF2] rounded p-4 h-full overflow-auto"
-                dangerouslySetInnerHTML={{ __html: report.generated_content }}
+                dangerouslySetInnerHTML={{ __html: report.content }}
               />
             ) : report.status === 'generating' ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="text-[#3388FF] text-lg mb-2">报告生成中...</div>
                   <div className="text-[#666]">进度：{report.progress}%</div>
-                </div>
-              </div>
-            ) : report.status === 'failed' ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="text-red-500 text-lg mb-2">报告生成失败</div>
-                  <div className="text-[#666] mb-4">请检查配置后重新生成</div>
-                  <Button type="primary" onClick={handleEdit}>重新配置</Button>
                 </div>
               </div>
             ) : (
@@ -322,28 +316,28 @@ const ReportView: React.FC = () => {
                   {report.filters.report_time_start} 至 {report.filters.report_time_end}
                 </Descriptions.Item>
                 <Descriptions.Item label="所属区域">
-                  {report.filters.region.length > 0 ? report.filters.region.join('、') : '全部'}
+                  {report.filters.region && report.filters.region.length > 0 ? report.filters.region.join('、') : '全部'}
                 </Descriptions.Item>
                 <Descriptions.Item label="诉求来源">
-                  {report.filters.appeal_source.length > 0 ? report.filters.appeal_source.join('、') : '全部'}
+                  {report.filters.appeal_source && report.filters.appeal_source.length > 0 ? report.filters.appeal_source.join('、') : '全部'}
                 </Descriptions.Item>
                 <Descriptions.Item label="诉求性质">
-                  {report.filters.appeal_nature.length > 0 ? report.filters.appeal_nature.join('、') : '全部'}
+                  {report.filters.appeal_nature && report.filters.appeal_nature.length > 0 ? report.filters.appeal_nature.join('、') : '全部'}
                 </Descriptions.Item>
                 <Descriptions.Item label="诉求状态">
-                  {report.filters.appeal_status.length > 0 ? report.filters.appeal_status.join('、') : '全部'}
+                  {report.filters.appeal_status && report.filters.appeal_status.length > 0 ? report.filters.appeal_status.join('、') : '全部'}
                 </Descriptions.Item>
                 <Descriptions.Item label="满意评价">
-                  {report.filters.satisfaction_rating.length > 0 ? report.filters.satisfaction_rating.join('、') : '全部'}
+                  {report.filters.satisfaction_rating && report.filters.satisfaction_rating.length > 0 ? report.filters.satisfaction_rating.join('、') : '全部'}
                 </Descriptions.Item>
                 <Descriptions.Item label="处置部门">
-                  {report.filters.handling_department.length > 0 ? report.filters.handling_department.join('、') : '全部'}
+                  {report.filters.handling_department && report.filters.handling_department.length > 0 ? report.filters.handling_department.join('、') : '全部'}
                 </Descriptions.Item>
                 <Descriptions.Item label="诉求事项">
-                  {report.filters.appeal_item.length > 0 ? report.filters.appeal_item.join('、') : '全部'}
+                  {report.filters.appeal_item && report.filters.appeal_item.length > 0 ? report.filters.appeal_item.join('、') : '全部'}
                 </Descriptions.Item>
                 <Descriptions.Item label="诉求标签">
-                  {report.filters.appeal_tags.length > 0 ? report.filters.appeal_tags.join('、') : '全部'}
+                  {report.filters.appeal_tags && report.filters.appeal_tags.length > 0 ? report.filters.appeal_tags.join('、') : '全部'}
                 </Descriptions.Item>
                 <Descriptions.Item label="诉求标题">
                   {report.filters.appeal_title || '无'}

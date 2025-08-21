@@ -203,9 +203,9 @@ const ReportTemplateManagement: React.FC = () => {
                               record.content_structure.rich_text_content.trim().length > 0;
     
     // 检查是否有章节内容
-    const hasTemplateContentItems = record.templateContentItems && 
-                                   Array.isArray(record.templateContentItems) && 
-                                   record.templateContentItems.length > 0;
+    const hasTemplateContentItems = record.content_structure?.embedded_dimensions && 
+                                   Array.isArray(record.content_structure.embedded_dimensions) && 
+                                   record.content_structure.embedded_dimensions.length > 0;
     
     // 根据是否有内容决定跳转到哪个编辑页面
     const editPath = (hasRichTextContent || hasTemplateContentItems)

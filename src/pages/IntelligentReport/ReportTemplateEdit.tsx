@@ -10,14 +10,14 @@
  * 6. 所有CRUD操作都更新隔离相关字段，保证数据一致性
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, Select, Form, message, Tabs, Row, Col, DatePicker, Tree, Table, Modal, Card, Space, Typography, TreeSelect, Tag, Empty } from 'antd';
+import React, { useState, useEffect, /* useRef */ } from 'react';
+import { Button, Input, Select, Form, message, /* Tabs, */ Row, Col, DatePicker, Tree, Table, Modal, /* Card, Space, Typography, TreeSelect, */ Tag, Empty } from 'antd';
 import type { TreeDataNode } from 'antd';
-import { SaveOutlined, ArrowLeftOutlined, EyeOutlined, EyeInvisibleOutlined, PlayCircleOutlined, DownOutlined, UpOutlined, BarChartOutlined, FolderOutlined, DeleteOutlined, HolderOutlined, EditOutlined, PlusOutlined, DragOutlined } from '@ant-design/icons';
+import { SaveOutlined, ArrowLeftOutlined, EyeOutlined, EyeInvisibleOutlined, PlayCircleOutlined, DownOutlined, UpOutlined, BarChartOutlined, FolderOutlined, DeleteOutlined, /* HolderOutlined, */ EditOutlined, PlusOutlined, DragOutlined } from '@ant-design/icons';
 import ContentEditModal from '@/components/ContentEditModal';
 import {
   DndContext,
-  closestCorners,
+  // closestCorners,
   closestCenter,
   PointerSensor,
   useSensor,
@@ -25,8 +25,8 @@ import {
   DragEndEvent,
   DragOverEvent,
   DragStartEvent,
-  DragOverlay,
-  DropAnimation,
+  // DragOverlay,
+  // DropAnimation,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -38,14 +38,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/utils';
 import { useAppStore } from '@/store';
 import type { ReportTemplate } from '../../types';
-import dayjs from 'dayjs';
+// import dayjs from 'dayjs';
 import './ReportTemplateEdit.css';
 
 const { Option } = Select;
-const { TextArea } = Input;
+// const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 const { Column } = Table;
-const { Text } = Typography;
+// const { Text } = Typography;
 
 // 内容项接口定义
 interface ContentItem {
@@ -68,50 +68,50 @@ interface ContentItem {
 }
 
 // 可拖拽的表格行组件
-const DraggableRow = ({ index, moveRow, className, style, ...restProps }: any) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: restProps['data-row-key'],
-  });
+// const DraggableRow = ({ index, moveRow, className, style, ...restProps }: any) => {
+//   const {
+//     attributes,
+//     listeners,
+//     setNodeRef,
+//     transform,
+//     transition,
+//     isDragging,
+//   } = useSortable({
+//     id: restProps['data-row-key'],
+//   });
 
-  const dragStyle = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    ...(isDragging ? { position: 'relative', zIndex: 9999 } : {}),
-  };
+//   const dragStyle = {
+//     transform: CSS.Transform.toString(transform),
+//     transition,
+//     ...(isDragging ? { position: 'relative', zIndex: 9999 } : {}),
+//   };
 
-  return (
-    <tr
-      ref={setNodeRef}
-      style={{ ...style, ...dragStyle }}
-      className={className}
-      {...restProps}
-      {...attributes}
-    >
-      {React.Children.map(restProps.children, (child, childIndex) => {
-        if (childIndex === 1) {
-          // 第二列为拖拽列，显示拖拽图标
-          return React.cloneElement(child, {
-            children: (
-              <HolderOutlined
-                style={{ cursor: 'grab', color: '#999' }}
-                {...listeners}
-              />
-            ),
-          });
-        }
-        // 其他列保持原样，包括第一列的复选框
-        return child;
-      })}
-    </tr>
-  );
-};
+//   return (
+//     <tr
+//       ref={setNodeRef}
+//       style={{ ...style, ...dragStyle }}
+//       className={className}
+//       {...restProps}
+//       {...attributes}
+//     >
+//       {React.Children.map(restProps.children, (child, childIndex) => {
+//         if (childIndex === 1) {
+//           // 第二列为拖拽列，显示拖拽图标
+//           return React.cloneElement(child, {
+//             children: (
+//               <HolderOutlined
+//                 style={{ cursor: 'grab', color: '#999' }}
+//                 {...listeners}
+//               />
+//             ),
+//           });
+//         }
+//         // 其他列保持原样，包括第一列的复选框
+//         return child;
+//       })}
+//     </tr>
+//   );
+// };
 
 const ReportTemplateEdit: React.FC = () => {
   const { id } = useParams();
@@ -119,13 +119,13 @@ const ReportTemplateEdit: React.FC = () => {
   // const _location = useLocation();
   const { addTab: _addTab, removeTab, setSelectedMenuKey } = useAppStore();
   const [form] = Form.useForm();
-  const [ticketSearchForm] = Form.useForm();
+  // const [ticketSearchForm] = Form.useForm();
   const [appealsSearchForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(true);
   // 移除tab相关状态
   // const [activeTab, setActiveTab] = useState('edit');
-  const [dimensionMetricTab, setDimensionMetricTab] = useState('dimensions');
+  // const [dimensionMetricTab, setDimensionMetricTab] = useState('dimensions');
   
   // 预览过滤条件状态
   const [previewFilters, setPreviewFilters] = useState({
@@ -141,12 +141,12 @@ const ReportTemplateEdit: React.FC = () => {
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   
   // 文本选择相关状态
-  const [selectedText, setSelectedText] = useState('');
-  const [contextMenuVisible, setContextMenuVisible] = useState(false);
-  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  // const [selectedText, setSelectedText] = useState('');
+  // const [contextMenuVisible, setContextMenuVisible] = useState(false);
+  // const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   
   // 编辑器引用
-  const editorRef = useRef<any>(null);
+  // const editorRef = useRef<any>(null);
   const [editorContent, setEditorContent] = useState('');
   
   // 表单数据
@@ -167,15 +167,15 @@ const ReportTemplateEdit: React.FC = () => {
   });
 
   // 数据指标状态
-  const [dataMetrics, setDataMetrics] = useState([]);
+  // const [dataMetrics, setDataMetrics] = useState([]);
 
   // 报告维度状态
   const [reportDimensions, setReportDimensions] = useState<any[]>([]);
   
   // 关联工单相关状态
   const [relatedTickets, setRelatedTickets] = useState<any[]>([]);
-  const [filteredTickets, setFilteredTickets] = useState<any[]>([]);
-  const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
+  // const [filteredTickets, setFilteredTickets] = useState<any[]>([]);
+  // const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const [_ticketQueryParams, _setTicketQueryParams] = useState({
     sectionName: '',
     sectionContent: '',
@@ -198,8 +198,8 @@ const ReportTemplateEdit: React.FC = () => {
   const [templateEditModalVisible, setTemplateEditModalVisible] = useState(false);
   const [currentTemplateEditItem, setCurrentTemplateEditItem] = useState<any>(null);
   const [templateEditMode, setTemplateEditMode] = useState<'add' | 'edit'>('add');
-  const [templateEditParentId, setTemplateEditParentId] = useState<string | undefined>(undefined);
-  const [templateEditLevel, setTemplateEditLevel] = useState<1 | 2 | 3>(1);
+  // const [templateEditParentId, setTemplateEditParentId] = useState<string | undefined>(undefined);
+  // const [templateEditLevel, setTemplateEditLevel] = useState<1 | 2 | 3>(1);
 
   // 拖拽传感器配置
   const templateSensors = useSensors(
@@ -210,65 +210,65 @@ const ReportTemplateEdit: React.FC = () => {
     })
   );
   
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
+  // const sensors = useSensors(
+  //   useSensor(PointerSensor, {
+  //     activationConstraint: {
+  //       distance: 8,
+  //     },
+  //   })
+  // );
   
   // 新增章节编辑相关状态
   const [contentModalVisible, setContentModalVisible] = useState(false);
   const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
+  // const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
   
   // 维度选择相关状态
-  const [selectedDimension, setSelectedDimension] = useState<string | null>(null);
-  const [dimensionCategories, setDimensionCategories] = useState<any[]>([]);
-  const [treeData, setTreeData] = useState<any[]>([]);
-  const [dimensions, setDimensions] = useState<any[]>([]);
+  // const [selectedDimension, setSelectedDimension] = useState<string | null>(null);
+  // const [dimensionCategories, setDimensionCategories] = useState<any[]>([]);
+  // const [treeData, setTreeData] = useState<any[]>([]);
+  // const [dimensions, setDimensions] = useState<any[]>([]);
   
   // 将分类数据转换为TreeSelect格式
-  const buildTreeData = (categories: Array<{
-    id: string;
-    name: string;
-    parent_id?: string;
-    description?: string;
-    created_at?: string;
-    created_by?: string;
-  }>) => {
-    const categoryMap = new Map();
-    const rootCategories: any[] = [];
+  // const buildTreeData = (categories: Array<{
+  //   id: string;
+  //   name: string;
+  //   parent_id?: string;
+  //   description?: string;
+  //   created_at?: string;
+  //   created_by?: string;
+  // }>) => {
+  //   const categoryMap = new Map();
+  //   const rootCategories: any[] = [];
 
-    // 创建所有节点
-    categories.forEach((category: any) => {
-      categoryMap.set(category.id, {
-        value: category.id,
-        title: category.name,
-        key: category.id,
-        children: []
-      });
-    });
+  //   // 创建所有节点
+  //   categories.forEach((category: any) => {
+  //     categoryMap.set(category.id, {
+  //       value: category.id,
+  //       title: category.name,
+  //       key: category.id,
+  //       children: []
+  //     });
+  //   });
 
-    // 构建树结构
-    categories.forEach((category: any) => {
-      const node = categoryMap.get(category.id);
-      if (category.parent_id) {
-        const parent = categoryMap.get(category.parent_id);
-        if (parent) {
-          parent.children.push(node);
-        }
-      } else {
-        rootCategories.push(node);
-      }
-    });
+  //   // 构建树结构
+  //   categories.forEach((category: any) => {
+  //     const node = categoryMap.get(category.id);
+  //     if (category.parent_id) {
+  //       const parent = categoryMap.get(category.parent_id);
+  //       if (parent) {
+  //         parent.children.push(node);
+  //       }
+  //     } else {
+  //       rootCategories.push(node);
+  //     }
+  //   });
 
-    return rootCategories;
-  };
+  //   return rootCategories;
+  // };
   
   // 模板编辑相关函数
   
@@ -297,8 +297,8 @@ const ReportTemplateEdit: React.FC = () => {
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     setActiveId(active.id as string);
-    const item = findTemplateItem(templateContentItems, active.id as string);
-    setActiveItem(item);
+    // const item = findTemplateItem(templateContentItems, active.id as string);
+    // setActiveItem(item);
     setOverId(null);
   };
   
@@ -311,7 +311,7 @@ const ReportTemplateEdit: React.FC = () => {
     const { active, over } = event;
     
     setActiveId(null);
-    setActiveItem(null);
+    // setActiveItem(null);
     setOverId(null);
     
     if (!over || active.id === over.id) {
@@ -323,21 +323,21 @@ const ReportTemplateEdit: React.FC = () => {
   };
   
   // 获取所有项目ID的辅助函数
-  const getAllItems = (items: ContentItem[]): ContentItem[] => {
-    const result: ContentItem[] = [];
-    
-    const traverse = (itemList: ContentItem[]) => {
-      itemList.forEach(item => {
-        result.push(item);
-        if (item.children && item.children.length > 0) {
-          traverse(item.children);
-        }
-      });
-    };
-    
-    traverse(items);
-    return result;
-  };
+  // const getAllItems = (items: ContentItem[]): ContentItem[] => {
+  //   const result: ContentItem[] = [];
+  //   
+  //   const traverse = (itemList: ContentItem[]) => {
+  //     itemList.forEach(item => {
+  //       result.push(item);
+  //       if (item.children && item.children.length > 0) {
+  //         traverse(item.children);
+  //       }
+  //     });
+  //   };
+  //   
+  //   traverse(items);
+  //   return result;
+  // };
   
 
   
@@ -355,19 +355,19 @@ const ReportTemplateEdit: React.FC = () => {
   };
   
   // 渲染模板内容项
-  const renderTemplateContentItem = (item: ContentItem) => {
-    const isActive = templateActiveId === item.id;
-    const isOver = templateOverId === item.id;
-    
-    return (
-      <DraggableContentCard
-        key={item.id}
-        item={item}
-        isActive={isActive}
-        isOver={isOver}
-      />
-    );
-  };
+  // const renderTemplateContentItem = (item: ContentItem) => {
+  //   const isActive = templateActiveId === item.id;
+  //   const isOver = templateOverId === item.id;
+  //   
+  //   return (
+  //     <DraggableContentCard
+  //       key={item.id}
+  //       item={item}
+  //       isActive={isActive}
+  //       isOver={isOver}
+  //     />
+  //   );
+  // };
   
   const handleTemplateEditSave = (values: any) => {
     if (templateEditMode === 'add') {
@@ -375,35 +375,35 @@ const ReportTemplateEdit: React.FC = () => {
         id: Date.now().toString(),
         title: values.title,
         content: values.content,
-        level: templateEditLevel!,
+        level: 1,
         order: templateContentItems.length,
-        parent_id: templateEditParentId,
+        parent_id: undefined,
         children: [],
       };
       
-      if (templateEditParentId) {
+      // if (templateEditParentId) {
         // 添加到父级的children中
-        const addToParent = (items: ContentItem[]): ContentItem[] => {
-          return items.map(item => {
-            if (item.id === templateEditParentId) {
-              return {
-                ...item,
-                children: [...(item.children || []), newItem]
-              };
-            }
-            if (item.children) {
-              return {
-                ...item,
-                children: addToParent(item.children)
-              };
-            }
-            return item;
-          });
-        };
-        setTemplateContentItems(prev => addToParent(prev));
-      } else {
+        // const addToParent = (items: ContentItem[]): ContentItem[] => {
+        //   return items.map(item => {
+        //     if (item.id === templateEditParentId) {
+        //       return {
+        //         ...item,
+        //         children: [...(item.children || []), newItem]
+        //       };
+        //     }
+        //     if (item.children) {
+        //       return {
+        //         ...item,
+        //         children: addToParent(item.children)
+        //       };
+        //     }
+        //     return item;
+        //   });
+        // };
+        // setTemplateContentItems(prev => addToParent(prev));
+      // } else {
         setTemplateContentItems(prev => [...prev, newItem]);
-      }
+      // }
       message.success('添加成功');
     } else {
       // 编辑模式
@@ -530,7 +530,7 @@ const ReportTemplateEdit: React.FC = () => {
         <div className="ml-6 mt-3 space-y-2 min-h-[20px]">
           {item.children && item.children.length > 0 ? (
             item.children.map((child) => (
-              <DraggableContentCard key={child.id} item={child} isActive={templateActiveId === child.id} isOver={templateOverId === child.id} />
+              <DraggableContentCard key={child.id} item={child} isActive={false} isOver={false} />
             ))
           ) : (
             // 空子内容区域，用于接收拖拽，但不显示提示文字
@@ -549,99 +549,99 @@ const ReportTemplateEdit: React.FC = () => {
   };
   
   // 关联工单查询
-  const handleTicketSearch = () => {
-    const values = ticketSearchForm.getFieldsValue();
-    _setTicketQueryParams(values);
-    
-    // 实现实际查询逻辑
-    let filteredTickets = [...relatedTickets];
-    
-    // 按章节名称筛选
-    if (values.sectionName && values.sectionName.trim()) {
-      filteredTickets = filteredTickets.filter(ticket => 
-        ticket.sectionName && ticket.sectionName.toLowerCase().includes(values.sectionName.toLowerCase().trim())
-      );
-    }
-    
-    // 按章节内容筛选
-    if (values.sectionContent && values.sectionContent.trim()) {
-      filteredTickets = filteredTickets.filter(ticket => 
-        ticket.sectionContent && ticket.sectionContent.toLowerCase().includes(values.sectionContent.toLowerCase().trim())
-      );
-    }
-    
-    // 按章节级别筛选
-    if (values.sectionLevel) {
-      filteredTickets = filteredTickets.filter(ticket => 
-        ticket.sectionLevel === values.sectionLevel
-      );
-    }
-    
-    // 更新显示的数据
-    setFilteredTickets(filteredTickets);
-    console.log('查询关联工单:', values, '筛选结果:', filteredTickets);
-  };
+  // const handleTicketSearch = () => {
+  //   const values = ticketSearchForm.getFieldsValue();
+  //   _setTicketQueryParams(values);
+  //   
+  //   // 实现实际查询逻辑
+  //   let filteredTickets = [...relatedTickets];
+  //   
+  //   // 按章节名称筛选
+  //   if (values.sectionName && values.sectionName.trim()) {
+  //     filteredTickets = filteredTickets.filter(ticket => 
+  //       ticket.sectionName && ticket.sectionName.toLowerCase().includes(values.sectionName.toLowerCase().trim())
+  //     );
+  //   }
+  //   
+  //   // 按章节内容筛选
+  //   if (values.sectionContent && values.sectionContent.trim()) {
+  //     filteredTickets = filteredTickets.filter(ticket => 
+  //       ticket.sectionContent && ticket.sectionContent.toLowerCase().includes(values.sectionContent.toLowerCase().trim())
+  //     );
+  //   }
+  //   
+  //   // 按章节级别筛选
+  //   if (values.sectionLevel) {
+  //     filteredTickets = filteredTickets.filter(ticket => 
+  //       ticket.sectionLevel === values.sectionLevel
+  //     );
+  //   }
+  //   
+  //   // 更新显示的数据
+  //   setFilteredTickets(filteredTickets);
+  //   console.log('查询关联工单:', values, '筛选结果:', filteredTickets);
+  // };
   
   // 关联工单重置
-  const handleTicketReset = () => {
-    ticketSearchForm.resetFields();
-    _setTicketQueryParams({
-      sectionName: '',
-      sectionContent: '',
-      sectionLevel: ''
-    });
-    setFilteredTickets(relatedTickets); // 重置为显示所有数据
-  };
+  // const handleTicketReset = () => {
+  //   ticketSearchForm.resetFields();
+  //   _setTicketQueryParams({
+  //     sectionName: '',
+  //     sectionContent: '',
+  //     sectionLevel: ''
+  //   });
+  //   setFilteredTickets(relatedTickets); // 重置为显示所有数据
+  // };
   
   // 批量删除关联工单
-  const handleBatchDeleteTickets = () => {
-    if (selectedTicketIds.length === 0) {
-      message.warning('请选择要删除的记录');
-      return;
-    }
-    
-    Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除选中的 ${selectedTicketIds.length} 条关联章节记录吗？删除后不可恢复。`,
-      okText: '确定删除',
-      cancelText: '取消',
-      okType: 'danger',
-      onOk: () => {
-        // 删除选中的记录
-        const newRelatedTickets = relatedTickets.filter(ticket => !selectedTicketIds.includes(ticket.id));
-        setRelatedTickets(newRelatedTickets);
-        setSelectedTicketIds([]);
-        message.success(`已删除 ${selectedTicketIds.length} 条记录`);
-      }
-    });
-  };
+  // const handleBatchDeleteTickets = () => {
+  //   if (selectedTicketIds.length === 0) {
+  //     message.warning('请选择要删除的记录');
+  //     return;
+  //   }
+  //   
+  //   Modal.confirm({
+  //     title: '确认删除',
+  //     content: `确定要删除选中的 ${selectedTicketIds.length} 条关联章节记录吗？删除后不可恢复。`,
+  //     okText: '确定删除',
+  //     cancelText: '取消',
+  //     okType: 'danger',
+  //     onOk: () => {
+  //       // 删除选中的记录
+  //       const newRelatedTickets = relatedTickets.filter(ticket => !selectedTicketIds.includes(ticket.id));
+  //       setRelatedTickets(newRelatedTickets);
+  //       setSelectedTicketIds([]);
+  //       message.success(`已删除 ${selectedTicketIds.length} 条记录`);
+  //     }
+  //   });
+  // };
   
   // 编辑关联工单
-  const handleEditTicket = (record: any) => {
-    setEditingTicket(record);
-    
-    // 处理维度过滤条件
-    const workOrderFilters = record.workOrderFilters || {};
-    
-    editFilterForm.setFieldsValue({
-      sectionName: record.sectionName,
-      sectionContent: record.sectionContent,
-      sectionLevel: record.sectionLevel,
-      filterConditions: record.filterConditions || '',
-      remark: record.remark || '',
-      // 带入维度内容设置的过滤条件
-      reportTime: workOrderFilters.reportTimeStart && workOrderFilters.reportTimeEnd ? 
-        [dayjs(workOrderFilters.reportTimeStart), dayjs(workOrderFilters.reportTimeEnd)] : undefined,
-      appealSource: workOrderFilters.appealSource && workOrderFilters.appealSource.length > 0 ? 
-        workOrderFilters.appealSource[0] : undefined,
-      belongArea: workOrderFilters.region && workOrderFilters.region.length > 0 ? 
-        workOrderFilters.region[0] : undefined,
-      appealMatter: workOrderFilters.appealItem && workOrderFilters.appealItem.length > 0 ? 
-        workOrderFilters.appealItem[0] : undefined,
-      appealTags: workOrderFilters.appealTags || []
-    });
-    setEditFilterVisible(true);
-  };
+  // const handleEditTicket = (record: any) => {
+  //   setEditingTicket(record);
+  //   
+  //   // 处理维度过滤条件
+  //   const workOrderFilters = record.workOrderFilters || {};
+  //   
+  //   editFilterForm.setFieldsValue({
+  //     sectionName: record.sectionName,
+  //     sectionContent: record.sectionContent,
+  //     sectionLevel: record.sectionLevel,
+  //     filterConditions: record.filterConditions || '',
+  //     remark: record.remark || '',
+  //     // 带入维度内容设置的过滤条件
+  //     reportTime: workOrderFilters.reportTimeStart && workOrderFilters.reportTimeEnd ? 
+  //       [dayjs(workOrderFilters.reportTimeStart), dayjs(workOrderFilters.reportTimeEnd)] : undefined,
+  //     appealSource: workOrderFilters.appealSource && workOrderFilters.appealSource.length > 0 ? 
+  //       workOrderFilters.appealSource[0] : undefined,
+  //     belongArea: workOrderFilters.region && workOrderFilters.region.length > 0 ? 
+  //       workOrderFilters.region[0] : undefined,
+  //     appealMatter: workOrderFilters.appealItem && workOrderFilters.appealItem.length > 0 ? 
+  //       workOrderFilters.appealItem[0] : undefined,
+  //     appealTags: workOrderFilters.appealTags || []
+  //   });
+  //   setEditFilterVisible(true);
+  // };
   
   // 保存编辑过滤条件
   const handleSaveEditFilter = async () => {
@@ -690,18 +690,18 @@ const ReportTemplateEdit: React.FC = () => {
   };
   
   // 查看关联诉求
-  const handleViewRelatedAppeals = (record: any) => {
-    // 检查是否已设置预览条件并生成预览
-    if (!previewContent) {
-      message.warning('请在设置预览条件，生成预览后查看关联诉求');
-      return;
-    }
-    
-    setCurrentTicket(record);
-    setViewAppealsVisible(true);
-    // 模拟加载关联诉求数据
-    loadAppealsData(record);
-  };
+  // const handleViewRelatedAppeals = (record: any) => {
+  //   // 检查是否已设置预览条件并生成预览
+  //   if (!previewContent) {
+  //     message.warning('请在设置预览条件，生成预览后查看关联诉求');
+  //     return;
+  //   }
+  //   
+  //   setCurrentTicket(record);
+  //   setViewAppealsVisible(true);
+  //   // 模拟加载关联诉求数据
+  //   loadAppealsData(record);
+  // };
   
   // 加载关联诉求数据
   const loadAppealsData = async (_ticket: any) => {
@@ -765,11 +765,11 @@ const ReportTemplateEdit: React.FC = () => {
   };
   
   // 删除单个关联工单
-  const handleDeleteTicket = (record: any) => {
-    // TODO: 实际删除逻辑
-    console.log('删除关联工单:', record);
-    message.success('删除成功');
-  };
+  // const handleDeleteTicket = (record: any) => {
+  //   // TODO: 实际删除逻辑
+  //   console.log('删除关联工单:', record);
+  //   message.success('删除成功');
+  // };
 
   // 从localStorage构建层级数据结构
   const buildHierarchicalData = (items: any[], type: 'dimensions' | 'metrics') => {
@@ -1077,25 +1077,25 @@ const ReportTemplateEdit: React.FC = () => {
                console.error('❌ 关联工单数据不是数组格式:', typeof ticketsData);
                message.warning('关联工单数据格式异常，已重置为空');
                setRelatedTickets([]);
-               setFilteredTickets([]);
+               // // // // setFilteredTickets([]);
              } else {
                console.log('🎫 解析后的关联工单数据:', ticketsData);
                console.log('🎫 关联工单数量:', ticketsData.length);
                
                setRelatedTickets(ticketsData);
-               setFilteredTickets(ticketsData);
+               // setFilteredTickets(ticketsData);
                console.log('✅ 关联工单数据已设置到state');
              }
            } else {
              console.log('⚠️ 没有找到关联工单数据');
              setRelatedTickets([]);
-             setFilteredTickets([]);
+             // setFilteredTickets([]);
            }
          } catch (ticketError) {
            console.error('❌ 关联工单数据处理失败:', ticketError);
            message.warning('关联工单数据加载失败，已重置为空');
            setRelatedTickets([]);
-           setFilteredTickets([]);
+           // setFilteredTickets([]);
          }
          
          console.log('🎉 模板数据加载完成');
@@ -1147,8 +1147,8 @@ const ReportTemplateEdit: React.FC = () => {
       }
       
       // 统一使用groupMetricsByCategory处理指标数据，确保数据结构一致
-      const groupedMetrics = groupMetricsByCategory(metricsData);
-      setDataMetrics(groupedMetrics);
+      // const groupedMetrics = groupMetricsByCategory(metricsData);
+      // setDataMetrics(groupedMetrics);
     } catch (error) {
       console.error('加载指标数据失败:', error);
     }
@@ -1185,7 +1185,7 @@ const ReportTemplateEdit: React.FC = () => {
 
   // 监听 relatedTickets 变化，同步更新 filteredTickets
   useEffect(() => {
-    setFilteredTickets(relatedTickets);
+    // setFilteredTickets(relatedTickets);
   }, [relatedTickets]);
 
   // 保存模板
@@ -1336,46 +1336,46 @@ const ReportTemplateEdit: React.FC = () => {
   };
 
   // 处理文本选择
-  const handleTextSelect = (e: React.MouseEvent) => {
-    const textarea = e.target as HTMLTextAreaElement;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value.substring(start, end);
-    
-    if (text.trim()) {
-      setSelectedText(text.trim());
-      setContextMenuPosition({ x: e.clientX, y: e.clientY });
-      setContextMenuVisible(true);
-    } else {
-      setContextMenuVisible(false);
-    }
-  };
+  // const handleTextSelect = (e: React.MouseEvent) => {
+  //   const textarea = e.target as HTMLTextAreaElement;
+  //   const start = textarea.selectionStart;
+  //   const end = textarea.selectionEnd;
+  //   const text = textarea.value.substring(start, end);
+  //   
+  //   if (text.trim()) {
+  //     setSelectedText(text.trim());
+  //     setContextMenuPosition({ x: e.clientX, y: e.clientY });
+  //     setContextMenuVisible(true);
+  //   } else {
+  //     setContextMenuVisible(false);
+  //   }
+  // };
 
   // 生成维度
-  const handleGenerateDimension = () => {
-    setContextMenuVisible(false);
-    // 在新页签中打开维度新增页，并传递选中的文字和返回路径
-    const newTab = {
-      key: 'dimension-detail-new-from-template',
-      label: '新增维度',
-      closable: true,
-      path: '/intelligent-report/dimension-detail',
-      state: { 
-        selectedText,
-        returnPath: '/intelligent-report/report-template-management',
-        fromTemplate: true,
-        activeMenuKey: 'report-template-management' // 确保定位到报告模板管理栏目
-      }
-    };
-    
-    // 通过全局状态管理添加新页签
-    window.dispatchEvent(new CustomEvent('addTab', { detail: newTab }));
-  };
+  // const handleGenerateDimension = () => {
+  //   setContextMenuVisible(false);
+  //   // 在新页签中打开维度新增页，并传递选中的文字和返回路径
+  //   const newTab = {
+  //     key: 'dimension-detail-new-from-template',
+  //     label: '新增维度',
+  //     closable: true,
+  //     path: '/intelligent-report/dimension-detail',
+  //     state: { 
+  //       selectedText,
+  //       returnPath: '/intelligent-report/report-template-management',
+  //       fromTemplate: true,
+  //       activeMenuKey: 'report-template-management' // 确保定位到报告模板管理栏目
+  //     }
+  //   };
+  //   
+  //   // 通过全局状态管理添加新页签
+  //   window.dispatchEvent(new CustomEvent('addTab', { detail: newTab }));
+  // };
 
   // 点击其他地方隐藏菜单
-  const handleClickOutside = () => {
-    setContextMenuVisible(false);
-  };
+  // const handleClickOutside = () => {
+  //   setContextMenuVisible(false);
+  // };
 
 
 
@@ -1392,16 +1392,16 @@ const ReportTemplateEdit: React.FC = () => {
   // ];
 
   // 数据指标和报告维度Tab项
-  const dimensionMetricItems = [
-    {
-      key: 'dimensions',
-      label: '报告维度',
-    },
-    {
-      key: 'metrics', 
-      label: '数据指标',
-    }
-  ];
+  // const dimensionMetricItems = [
+  //   {
+  //     key: 'dimensions',
+  //     label: '报告维度',
+  //   },
+  //   {
+  //     key: 'metrics', 
+  //     label: '数据指标',
+  //   }
+  // ];
 
   // 在光标位置插入维度内容
   const insertDimensionContent = (dimension: any) => {
@@ -1525,9 +1525,9 @@ const ReportTemplateEdit: React.FC = () => {
         if (item.children && Array.isArray(item.children) && item.children.length > 0) {
           // 检查是否有多层级嵌套（至少有二级和三级）
           const hasSecondLevel = item.children.length > 0;
-          const hasThirdLevel = item.children.some(child => 
-            child.children && Array.isArray(child.children) && child.children.length > 0
-          );
+          // const hasThirdLevel = item.children.some((child: any) => 
+          //   child.children && Array.isArray(child.children) && child.children.length > 0
+          // );
           // 只有当存在至少二级层级时才认为是完整结构
           return hasSecondLevel;
         }
@@ -1762,7 +1762,7 @@ const ReportTemplateEdit: React.FC = () => {
             console.log(`处理子项 ${index + 1}/${item.children.length}: ${child.title}, 父级: ${item.title}`);
             return processItem(child, templateItem.id, childLevel, newPath);
           });
-          console.log(`${item.title} 处理完成，包含 ${templateItem.children.length} 个子项`);
+          console.log(`${item.title} 处理完成，包含 ${templateItem.children?.length || 0} 个子项`);
         }
         
         return templateItem;
@@ -1975,7 +1975,7 @@ const ReportTemplateEdit: React.FC = () => {
     onDelete: () => void;
     onAddChild: () => void;
     index?: number;
-  }> = ({ item, level, onEdit, onDelete, onAddChild }) => {
+  }> = ({ item }) => {
     const {
       attributes,
       listeners,
@@ -2101,15 +2101,15 @@ const ReportTemplateEdit: React.FC = () => {
       id: `content_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       title: `新${level === 1 ? '一' : level === 2 ? '二' : '三'}级章节`,
       content: '',
-      level,
-      parentId,
+      level: level as 1 | 2 | 3,
+      parent_id: parentId,
       workOrderEnabled: false,
       children: [],
       order: templateContentItems.length + 1
     };
 
     // 设置为新增模式，不立即添加到列表中
-    setEditingContent({ ...newItem, isNew: true, parentId });
+    setEditingContent({ ...newItem, parent_id: parentId });
     setContentModalVisible(true);
   };
 
@@ -2136,31 +2136,31 @@ const ReportTemplateEdit: React.FC = () => {
     }
   };
 
-  const handleEditContent = (item: ContentItem) => {
-    setEditingContent(item);
-    setContentModalVisible(true);
-  };
+  // const handleEditContent = (item: ContentItem) => {
+  //   setEditingContent(item);
+  //   setContentModalVisible(true);
+  // };
 
-  const handleDeleteContent = (itemId: string) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个章节吗？删除后不可恢复。',
-      onOk: () => {
-        const removeFromItems = (items: ContentItem[]): ContentItem[] => {
-          return items.filter(item => {
-            if (item.id === itemId) {
-              return false;
-            }
-            if (item.children && item.children.length > 0) {
-              item.children = removeFromItems(item.children);
-            }
-            return true;
-          });
-        };
-        setTemplateContentItems(removeFromItems(templateContentItems));
-      }
-    });
-  };
+  // const handleDeleteContent = (itemId: string) => {
+  //   Modal.confirm({
+  //     title: '确认删除',
+  //     content: '确定要删除这个章节吗？删除后不可恢复。',
+  //     onOk: () => {
+  //       const removeFromItems = (items: ContentItem[]): ContentItem[] => {
+  //         return items.filter(item => {
+  //           if (item.id === itemId) {
+  //             return false;
+  //           }
+  //           if (item.children && item.children.length > 0) {
+  //             item.children = removeFromItems(item.children);
+  //           }
+  //           return true;
+  //         });
+  //       };
+  //       setTemplateContentItems(removeFromItems(templateContentItems));
+  //     }
+  //   });
+  // };
 
   const handleContentSave = (values: any) => {
     const updateItems = (items: ContentItem[]): ContentItem[] => {
@@ -2197,83 +2197,83 @@ const ReportTemplateEdit: React.FC = () => {
   };
 
   // 在光标位置插入指标占位符
-  const insertMetricPlaceholder = (metric: any) => {
-    console.log('insertMetricPlaceholder被调用', metric);
-    // 生成指标占位符
-    const placeholder = `{{${metric.title || metric.label || metric.name}}}`;
-    console.log('要插入的占位符:', placeholder);
-    
-    // 获取当前内容和光标位置
-    const currentContent = editorContent || form.getFieldValue('content') || '';
-    let insertPosition = currentContent.length;
-    
-    if (editorRef.current) {
-      const textAreaElement = editorRef.current.resizableTextArea?.textArea;
-      if (textAreaElement) {
-        insertPosition = textAreaElement.selectionStart;
-        console.log('光标位置:', insertPosition);
-      }
-    }
-    
-    // 构建新内容
-    const newContent = currentContent.substring(0, insertPosition) + placeholder + currentContent.substring(insertPosition);
-    console.log('新内容:', newContent);
-    
-    // 更新状态和表单
-    setEditorContent(newContent);
-    form.setFieldsValue({ content: newContent });
-    console.log('内容已更新');
-    
-    // 设置光标位置
-    setTimeout(() => {
-      if (editorRef.current) {
-        const textAreaElement = editorRef.current.resizableTextArea?.textArea;
-        if (textAreaElement) {
-          textAreaElement.focus();
-          textAreaElement.setSelectionRange(insertPosition + placeholder.length, insertPosition + placeholder.length);
-          console.log('光标位置已设置');
-        }
-      }
-    }, 50);
-    
-    message.success(`已插入指标占位符：${metric.title || metric.label || metric.name}`);
-  };
+  // const insertMetricPlaceholder = (metric: any) => {
+  //   console.log('insertMetricPlaceholder被调用', metric);
+  //   // 生成指标占位符
+  //   const placeholder = `{{${metric.title || metric.label || metric.name}}}`;
+  //   console.log('要插入的占位符:', placeholder);
+  //   
+  //   // 获取当前内容和光标位置
+  //   const currentContent = editorContent || form.getFieldValue('content') || '';
+  //   let insertPosition = currentContent.length;
+  //   
+  //   if (editorRef.current) {
+  //     const textAreaElement = editorRef.current.resizableTextArea?.textArea;
+  //     if (textAreaElement) {
+  //       insertPosition = textAreaElement.selectionStart;
+  //       console.log('光标位置:', insertPosition);
+  //     }
+  //   }
+  //   
+  //   // 构建新内容
+  //   const newContent = currentContent.substring(0, insertPosition) + placeholder + currentContent.substring(insertPosition);
+  //   console.log('新内容:', newContent);
+  //   
+  //   // 更新状态和表单
+  //   setEditorContent(newContent);
+  //   form.setFieldsValue({ content: newContent });
+  //   console.log('内容已更新');
+  //   
+  //   // 设置光标位置
+  //   setTimeout(() => {
+  //     if (editorRef.current) {
+  //       const textAreaElement = editorRef.current.resizableTextArea?.textArea;
+  //       if (textAreaElement) {
+  //         textAreaElement.focus();
+  //         textAreaElement.setSelectionRange(insertPosition + placeholder.length, insertPosition + placeholder.length);
+  //         console.log('光标位置已设置');
+  //       }
+  //     }
+  //   }, 50);
+  //   
+  //   message.success(`已插入指标占位符：${metric.title || metric.label || metric.name}`);
+  // };
 
   // 将平面指标数据转换为分类树结构
-  const groupMetricsByCategory = (metrics: any[]) => {
-    const categoryMap = new Map();
-    
-    metrics.forEach(metric => {
-      const category = metric.category || '未分类';
-      if (!categoryMap.has(category)) {
-        categoryMap.set(category, {
-          key: category,
-          label: category,
-          title: category,
-          type: 'category',
-          children: []
-        });
-      }
-      categoryMap.get(category).children.push(metric);
-    });
-    
-    const categories = Array.from(categoryMap.values());
-    
-    // 如果存在"未分类"分类，直接返回其下的指标，不显示"未分类"这个分类层级
-    const uncategorized = categories.find(category => category.key === '未分类');
-    if (uncategorized && uncategorized.children.length > 0) {
-      // 直接返回"未分类"下的指标，不显示"未分类"这个分类层级
-      return uncategorized.children.map((child: any) => ({
-        ...child,
-        key: child.id || child.key,
-        title: child.label || child.title,
-        type: 'metric'
-      }));
-    }
-    
-    // 返回所有有明确分类的指标分类
-    return categories.filter(category => category.key !== '未分类');
-  };
+  // const groupMetricsByCategory = (metrics: any[]) => {
+  //   const categoryMap = new Map();
+  //   
+  //   metrics.forEach(metric => {
+  //     const category = metric.category || '未分类';
+  //     if (!categoryMap.has(category)) {
+  //       categoryMap.set(category, {
+  //         key: category,
+  //         label: category,
+  //         title: category,
+  //         type: 'category',
+  //         children: []
+  //       });
+  //     }
+  //     categoryMap.get(category).children.push(metric);
+  //   });
+  //   
+  //   const categories = Array.from(categoryMap.values());
+  //   
+  //   // 如果存在"未分类"分类，直接返回其下的指标，不显示"未分类"这个分类层级
+  //   const uncategorized = categories.find(category => category.key === '未分类');
+  //   if (uncategorized && uncategorized.children.length > 0) {
+  //     // 直接返回"未分类"下的指标，不显示"未分类"这个分类层级
+  //     return uncategorized.children.map((child: any) => ({
+  //       ...child,
+  //       key: child.id || child.key,
+  //       title: child.label || child.title,
+  //       type: 'metric'
+  //     }));
+  //   }
+  //   
+  //   // 返回所有有明确分类的指标分类
+  //   return categories.filter(category => category.key !== '未分类');
+  // };
 
   // 转换指标数据为Tree组件格式
   const convertMetricsToTreeData = (items: any[]): any[] => {
@@ -2361,29 +2361,29 @@ const ReportTemplateEdit: React.FC = () => {
 
 
   // 渲染指标列表
-  const renderMetricList = () => {
-    const groupedMetrics = groupMetricsByCategory(dataMetrics);
-    const treeData = convertMetricsToTreeData(groupedMetrics);
-    return (
-      <Tree
-        showIcon
-        defaultExpandAll
-        treeData={treeData}
-        className="metric-tree"
-        selectable={true}
-        onSelect={(selectedKeys, info) => {
-          console.log('指标树点击事件触发', selectedKeys, info.node.data);
-          if (selectedKeys.length > 0 && info.node.data && !info.node.data.isCategory) {
-            console.log('调用insertMetricPlaceholder');
-            insertMetricPlaceholder(info.node.data);
-          }
-        }}
-        style={{
-          '--tree-node-height': '40px'
-        } as React.CSSProperties}
-      />
-    );
-  };
+  // const renderMetricList = () => {
+  //   const groupedMetrics = groupMetricsByCategory(dataMetrics);
+  //   const treeData = convertMetricsToTreeData(groupedMetrics);
+  //   return (
+  //     <Tree
+  //       showIcon
+  //       defaultExpandAll
+  //       treeData={treeData}
+  //       className="metric-tree"
+  //       selectable={true}
+  //       onSelect={(selectedKeys, info) => {
+  //         console.log('指标树点击事件触发', selectedKeys, info.node.data);
+  //         if (selectedKeys.length > 0 && info.node.data && !info.node.data.isCategory) {
+  //           console.log('调用insertMetricPlaceholder');
+  //           insertMetricPlaceholder(info.node.data);
+  //         }
+  //       }}
+  //       style={{
+  //         '--tree-node-height': '40px'
+  //       } as React.CSSProperties}
+  //     />
+  //   );
+  // };
 
   return (
     <div className="h-full bg-white rounded flex mx-5 mt-5" style={{ height: 'calc(100vh - 130px - 20px)', marginBottom: '20px' }}>
@@ -3146,8 +3146,8 @@ const ReportTemplateEdit: React.FC = () => {
         onSave={handleTemplateEditSave}
         editData={currentTemplateEditItem}
         mode={templateEditMode}
-        parent_id={templateEditParentId}
-        level={templateEditLevel}
+        parent_id={undefined}
+        level={1}
       />
       
       {/* 新的章节编辑弹窗 */}
@@ -3160,7 +3160,7 @@ const ReportTemplateEdit: React.FC = () => {
         onSave={handleContentSave}
         editData={editingContent}
         mode={editingContent?.id?.startsWith('content_') ? 'edit' : 'add'}
-        parent_id={editingContent?.parentId}
+        parent_id={editingContent?.parent_id}
         level={editingContent?.level || 1}
       />
     </div>

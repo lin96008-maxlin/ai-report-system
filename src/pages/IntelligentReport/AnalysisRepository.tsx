@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Input, Tree, Tabs, Empty } from 'antd';
+import React, { useState } from 'react';
+import { Button, Input, Tree, Tabs, Empty } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { TreeDataNode } from 'antd';
 
@@ -22,7 +22,7 @@ const AnalysisRepository: React.FC = () => {
   const [searchCategory, setSearchCategory] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('1-5-1');
   const [expandedKeys, setExpandedKeys] = useState<string[]>(['all', '1', '1-5']);
-  const [categories, setCategories] = useState<ProblemCategory[]>([
+  const [categories] = useState<ProblemCategory[]>([
     { id: '1', name: '公共安全', description: '公共安全相关问题分类' },
     { id: '2', name: '城市管理', description: '城市管理相关问题分类' },
     { id: '3', name: '规土住建', description: '规土住建相关问题分类' },
@@ -43,7 +43,7 @@ const AnalysisRepository: React.FC = () => {
     { id: '1-5-4', name: '报废车上路行驶', parent_id: '1-5', description: '报废车上路行驶相关问题' },
   ]);
   
-  const [projectCases, setProjectCases] = useState<ProjectCase[]>([
+  const [projectCases] = useState<ProjectCase[]>([
     { id: '1', name: '某区域非法营运专项整治', description: '针对某区域非法营运车辆的专项整治行动', category_id: '1-5-1', created_at: '2024-01-15' },
     { id: '2', name: '交通边坡安全隐患排查', description: '对重点路段交通边坡进行安全隐患排查', category_id: '1-5-2', created_at: '2024-01-20' },
     { id: '3', name: '无证驾驶专项治理', description: '开展无证驾驶专项治理行动', category_id: '1-5-3', created_at: '2024-01-25' },
@@ -534,7 +534,7 @@ const AnalysisRepository: React.FC = () => {
                           <p className="text-sm text-gray-500 mt-1">共找到 {currentCases.length} 个相关案例</p>
                         </div>
                         <div className="divide-y divide-gray-200">
-                          {currentCases.map((case_, index) => (
+                          {currentCases.map((case_) => (
                             <div key={case_.id} className="p-4 hover:bg-gray-50 transition-colors">
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
