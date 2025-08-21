@@ -10,6 +10,9 @@ import TabsNavigation from '@/components/Layout/TabsNavigation';
 import DimensionManagement from '@/pages/IntelligentReport/DimensionManagement';
 import DimensionDetail from '@/pages/IntelligentReport/DimensionDetail';
 import ReportManagement from '@/pages/IntelligentReport/ReportManagement';
+import ReportGenerate from '@/pages/IntelligentReport/ReportGenerate';
+import ReportEdit from '@/pages/IntelligentReport/ReportEdit';
+import ReportView from '@/pages/IntelligentReport/ReportView';
 import ReportTemplateManagement from '@/pages/IntelligentReport/ReportTemplateManagement';
 import ReportTemplateEdit from '@/pages/IntelligentReport/ReportTemplateEdit';
 import AnalysisRepository from '@/pages/IntelligentReport/AnalysisRepository';
@@ -38,6 +41,8 @@ const AppContent: React.FC = () => {
       currentRoute = { key: 'report-template-management', label: '报告模板管理' };
     } else if (location.pathname.includes('/intelligent-report/dimension-detail')) {
       currentRoute = { key: 'dimension-management', label: '维度管理' };
+    } else if (location.pathname.includes('/intelligent-report/report/')) {
+      currentRoute = { key: 'report-management', label: '报告管理' };
     }
 
     if (currentRoute) {
@@ -78,6 +83,9 @@ const AppContent: React.FC = () => {
               
               {/* 智能报告管理模块 */}
               <Route path="/intelligent-report/report-management" element={<ReportManagement />} />
+              <Route path="/intelligent-report/report/generate" element={<ReportGenerate />} />
+              <Route path="/intelligent-report/report/edit/:id?" element={<ReportEdit />} />
+              <Route path="/intelligent-report/report/view/:id" element={<ReportView />} />
               <Route path="/intelligent-report/report-template-management" element={<ReportTemplateManagement />} />
               <Route path="/intelligent-report/report-template-edit/:id?" element={<ReportTemplateEdit />} />
               <Route path="/intelligent-report/dimension-management" element={<DimensionManagement />} />

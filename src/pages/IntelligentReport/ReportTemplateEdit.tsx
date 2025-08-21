@@ -2294,76 +2294,78 @@ const ReportTemplateEdit: React.FC = () => {
         <div className="pt-5 pb-4 px-5 flex-shrink-0">
           <div className="flex items-center justify-between flex-wrap">
             {/* 过滤条件 */}
-            <div className="flex items-center space-x-4 flex-1">
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600 whitespace-nowrap">诉求编号:</span>
-                <Input
-                  placeholder="请输入诉求编号"
-                  value={appealsSearchForm.getFieldValue('appealId')}
-                  onChange={(e) => appealsSearchForm.setFieldsValue({ appealId: e.target.value })}
-                  className="w-48"
-                  allowClear
-                />
+            <Form form={appealsSearchForm} layout="inline" className="flex-1">
+              <div className="flex items-center space-x-4 flex-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600 whitespace-nowrap">诉求编号:</span>
+                  <Form.Item name="appealId" className="mb-0">
+                    <Input
+                      placeholder="请输入诉求编号"
+                      className="w-48"
+                      allowClear
+                    />
+                  </Form.Item>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600 whitespace-nowrap">诉求来源:</span>
+                  <Form.Item name="appealSource" className="mb-0">
+                    <Select 
+                      placeholder="请选择诉求来源" 
+                      className="w-48" 
+                      allowClear
+                    >
+                      <Option value="微信">微信</Option>
+                      <Option value="电话">电话</Option>
+                      <Option value="网站">网站</Option>
+                      <Option value="现场">现场</Option>
+                    </Select>
+                  </Form.Item>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600 whitespace-nowrap">所属区域:</span>
+                  <Form.Item name="region" className="mb-0">
+                    <Select 
+                      placeholder="请选择区域" 
+                      className="w-48" 
+                      allowClear
+                    >
+                      <Option value="市辖区A">市辖区A</Option>
+                      <Option value="市辖区B">市辖区B</Option>
+                      <Option value="市辖区C">市辖区C</Option>
+                    </Select>
+                  </Form.Item>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600 whitespace-nowrap">诉求事项:</span>
+                  <Form.Item name="appealItem" className="mb-0">
+                    <Select 
+                      placeholder="请选择诉求事项" 
+                      className="w-48" 
+                      allowClear
+                    >
+                      <Option value="环境污染">环境污染</Option>
+                      <Option value="噪音扰民">噪音扰民</Option>
+                      <Option value="交通问题">交通问题</Option>
+                      <Option value="其他">其他</Option>
+                    </Select>
+                  </Form.Item>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600 whitespace-nowrap">诉求来源:</span>
-                <Select 
-                  placeholder="请选择诉求来源" 
-                  value={appealsSearchForm.getFieldValue('appealSource')}
-                  onChange={(value) => appealsSearchForm.setFieldsValue({ appealSource: value })}
-                  className="w-48" 
-                  allowClear
-                >
-                  <Option value="微信">微信</Option>
-                  <Option value="电话">电话</Option>
-                  <Option value="网站">网站</Option>
-                  <Option value="现场">现场</Option>
-                </Select>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600 whitespace-nowrap">处理状态:</span>
+                  <Form.Item name="status" className="mb-0">
+                    <Select 
+                      placeholder="请选择状态" 
+                      className="w-48" 
+                      allowClear
+                    >
+                      <Option value="待处理">待处理</Option>
+                      <Option value="处理中">处理中</Option>
+                      <Option value="已处理">已处理</Option>
+                    </Select>
+                  </Form.Item>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600 whitespace-nowrap">所属区域:</span>
-                <Select 
-                  placeholder="请选择区域" 
-                  value={appealsSearchForm.getFieldValue('region')}
-                  onChange={(value) => appealsSearchForm.setFieldsValue({ region: value })}
-                  className="w-48" 
-                  allowClear
-                >
-                  <Option value="市辖区A">市辖区A</Option>
-                  <Option value="市辖区B">市辖区B</Option>
-                  <Option value="市辖区C">市辖区C</Option>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600 whitespace-nowrap">诉求事项:</span>
-                <Select 
-                  placeholder="请选择诉求事项" 
-                  value={appealsSearchForm.getFieldValue('appealItem')}
-                  onChange={(value) => appealsSearchForm.setFieldsValue({ appealItem: value })}
-                  className="w-48" 
-                  allowClear
-                >
-                  <Option value="环境污染">环境污染</Option>
-                  <Option value="噪音扰民">噪音扰民</Option>
-                  <Option value="交通问题">交通问题</Option>
-                  <Option value="其他">其他</Option>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-gray-600 whitespace-nowrap">处理状态:</span>
-                <Select 
-                  placeholder="请选择状态" 
-                  value={appealsSearchForm.getFieldValue('status')}
-                  onChange={(value) => appealsSearchForm.setFieldsValue({ status: value })}
-                  className="w-48" 
-                  allowClear
-                >
-                  <Option value="待处理">待处理</Option>
-                  <Option value="处理中">处理中</Option>
-                  <Option value="已处理">已处理</Option>
-                </Select>
-              </div>
-            </div>
+            </Form>
             
             {/* 按钮组 */}
              <div className="flex items-center space-x-2 ml-4">

@@ -158,3 +158,64 @@ export interface PreviewFilters {
   keyword?: string;
   district?: string;
 }
+
+// 报告管理相关类型
+export interface ReportCategory {
+  id: string;
+  name: string;
+  parent_id?: string;
+  description?: string;
+  created_at: string;
+  created_by: string;
+  updated_at?: string;
+  updated_by?: string;
+  children?: ReportCategory[];
+}
+
+export interface ReportFilters {
+  report_time_start: string;
+  report_time_end: string;
+  region?: string[];
+  appeal_source?: string[];
+  appeal_nature?: string[];
+  appeal_status?: string[];
+  satisfaction_rating?: string[];
+  appeal_title?: string;
+  appeal_title_match_type?: 'all' | 'partial';
+  appeal_description?: string;
+  appeal_description_match_type?: 'all' | 'partial';
+  handling_department?: string[];
+  appeal_item?: string[];
+  appeal_tags?: string[];
+}
+
+export interface Report {
+  id: string;
+  name: string;
+  description?: string;
+  type: '日报' | '周报' | '月报' | '季报' | '半年报' | '年报' | '专题报告';
+  category_id: string;
+  category_name?: string;
+  template_id: string;
+  template_name?: string;
+  status: 'generating' | 'completed';
+  content: string;
+  filters: ReportFilters;
+  associated_work_orders: AssociatedWorkOrderConfig[];
+  created_at: string;
+  created_by: string;
+  updated_at?: string;
+  updated_by?: string;
+  progress?: number;
+}
+
+export interface ReportQuery {
+  name?: string;
+  description?: string;
+  created_by?: string;
+  created_date_start?: string;
+  created_date_end?: string;
+  updated_date_start?: string;
+  updated_date_end?: string;
+  category_id?: string;
+}

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { TabItem } from '@/types';
+import { TabItem, Report } from '@/types';
 
 interface AppState {
   // 侧边栏折叠状态
@@ -24,6 +24,22 @@ interface AppState {
     avatar?: string;
   };
   setCurrentUser: (user: { name: string; avatar?: string }) => void;
+  
+  // 报告生成状态管理
+  reportGenerationTasks: Map<string, {
+    reportId: string;
+    progress: number;
+    status: 'pending' | 'generating' | 'completed' | 'failed';
+    startTime: Date;
+    endTime?: Date;
+    errorMessage?: string;
+  }>;
+  startReportGeneration: (reportId: string) => void;
+  updateReportProgress: (reportId: string, progress: number) => void;
+  completeReportGeneration: (reportId: string) => void;
+  failReportGeneration: (reportId: string, errorMessage: string) => void;
+  removeReportTask: (reportId: string) => void;
+  getReportTask: (reportId: string) => any;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -75,5 +91,72 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentUser: {
     name: '管理员'
   },
-  setCurrentUser: (user) => set({ currentUser: user })
+  setCurrentUser: (user) => set({ currentUser: user }),
+  
+  // 报告生成状态管理
+  reportGenerationTasks: new Map(),
+  
+  startReportGeneration: (reportId) => {
+    const { reportGenerationTasks } = get();
+    const newTasks = new Map(reportGenerationTasks);
+    newTasks.set(reportId, {
+      reportId,
+      progress: 0,
+      status: 'generating',
+      startTime: new Date()
+    });
+    set({ reportGenerationTasks: newTasks });
+  },
+  
+  updateReportProgress: (reportId, progress) => {
+    const { reportGenerationTasks } = get();
+    const task = reportGenerationTasks.get(reportId);
+    if (task) {
+      const newTasks = new Map(reportGenerationTasks);
+      newTasks.set(reportId, { ...task, progress });
+      set({ reportGenerationTasks: newTasks });
+    }
+  },
+  
+  completeReportGeneration: (reportId) => {
+    const { reportGenerationTasks } = get();
+    const task = reportGenerationTasks.get(reportId);
+    if (task) {
+      const newTasks = new Map(reportGenerationTasks);
+      newTasks.set(reportId, {
+        ...task,
+        progress: 100,
+        status: 'completed',
+        endTime: new Date()
+      });
+      set({ reportGenerationTasks: newTasks });
+    }
+  },
+  
+  failReportGeneration: (reportId, errorMessage) => {
+    const { reportGenerationTasks } = get();
+    const task = reportGenerationTasks.get(reportId);
+    if (task) {
+      const newTasks = new Map(reportGenerationTasks);
+      newTasks.set(reportId, {
+        ...task,
+        status: 'failed',
+        endTime: new Date(),
+        errorMessage
+      });
+      set({ reportGenerationTasks: newTasks });
+    }
+  },
+  
+  removeReportTask: (reportId) => {
+    const { reportGenerationTasks } = get();
+    const newTasks = new Map(reportGenerationTasks);
+    newTasks.delete(reportId);
+    set({ reportGenerationTasks: newTasks });
+  },
+  
+  getReportTask: (reportId) => {
+    const { reportGenerationTasks } = get();
+    return reportGenerationTasks.get(reportId);
+  }
 }));
