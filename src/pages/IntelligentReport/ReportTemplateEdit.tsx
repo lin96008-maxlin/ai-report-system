@@ -123,7 +123,8 @@ const ReportTemplateEdit: React.FC = () => {
   const [appealsSearchForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(true);
-  const [activeTab, setActiveTab] = useState('edit');
+  // 移除tab相关状态
+  // const [activeTab, setActiveTab] = useState('edit');
   const [dimensionMetricTab, setDimensionMetricTab] = useState('dimensions');
   
   // 预览过滤条件状态
@@ -909,7 +910,7 @@ const ReportTemplateEdit: React.FC = () => {
       // 页签已由ReportTemplateManagement创建，这里不需要重复创建
       
       // 如果是编辑模式，根据模板ID加载模板数据
-      if (id) {
+      if (id && id !== 'new') {
         console.log('✅ 进入编辑模式，模板ID:', id);
         
         // 验证模板ID的有效性
@@ -1208,7 +1209,7 @@ const ReportTemplateEdit: React.FC = () => {
       
       let templateId = id;
       
-      if (id) {
+      if (id && id !== 'new') {
         // 编辑模式：更新现有模板
         const templateIndex = existingTemplates.findIndex((t: any) => t.id === id);
         if (templateIndex !== -1) {
@@ -1378,17 +1379,17 @@ const ReportTemplateEdit: React.FC = () => {
 
 
 
-  // Tab项配置
-  const tabItems = [
-    {
-      key: 'edit',
-      label: '模板编辑',
-    },
-    {
-      key: 'workorder',
-      label: '关联章节',
-    }
-  ];
+  // 移除Tab项配置
+  // const tabItems = [
+  //   {
+  //     key: 'edit',
+  //     label: '模板编辑',
+  //   },
+  //   {
+  //     key: 'workorder',
+  //     label: '关联章节',
+  //   }
+  // ];
 
   // 数据指标和报告维度Tab项
   const dimensionMetricItems = [
@@ -2388,7 +2389,7 @@ const ReportTemplateEdit: React.FC = () => {
     <div className="h-full bg-white rounded flex mx-5 mt-5" style={{ height: 'calc(100vh - 130px - 20px)', marginBottom: '20px' }}>
       <div className="flex-1 flex flex-col">
         {/* 页面标题栏 */}
-        <div className="pl-5 pr-5" style={{ height: '48px', display: 'flex', alignItems: 'center', paddingTop: '20px' }}>
+        <div className="pl-5 pr-5 border-b border-[#E9ECF2]" style={{ height: '73px', display: 'flex', alignItems: 'center' }}>
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               <ArrowLeftOutlined 
@@ -2420,26 +2421,15 @@ const ReportTemplateEdit: React.FC = () => {
 
         {/* 报告编辑与关联工单Tab */}
         <div>
-          <div className="px-5 py-2" style={{ paddingBottom: '0px', paddingLeft: '20px' }}>
-            <Tabs
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              items={tabItems}
-              size="small"
-              tabBarGutter={24}
-              tabBarStyle={{ marginBottom: 0, borderBottom: 'none', paddingLeft: '0px', paddingRight: '0px' }}
-              className="report-edit-tabs"
-            />
-          </div>
-          <div className="w-full border-b border-[#E9ECF2]"></div>
+          {/* 移除顶部Tab导航 */}
         </div>
 
         {/* 内容区域 */}
         <div className="flex-1 flex overflow-hidden min-h-0">
         {/* 左侧内容区 */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* 基本信息 - 仅在报告编辑tab显示 */}
-          {activeTab === 'edit' && (
+          {/* 基本信息 */}
+          {(
             <div className="bg-white border-b border-[#E9ECF2]" style={{ paddingLeft: 0, paddingRight: 0, paddingTop: '12px', paddingBottom: '12px' }}>
               <Form form={form} layout="inline" className="mb-0" style={{ width: '100%', margin: 0 }}>
                 <div className="flex items-center w-full" style={{ paddingLeft: '20px', paddingRight: '20px', gap: '16px' }}>
@@ -2489,9 +2479,9 @@ const ReportTemplateEdit: React.FC = () => {
 
           {/* 下方内容区 */}
           <div className="flex-1 flex overflow-hidden">
-            {activeTab === 'edit' ? (
-              <>
-                {/* 左下：数据指标及报告维度 */}
+            {/* 直接显示模板编辑内容，移除activeTab条件 */}
+            <>
+              {/* 左下：数据指标及报告维度 */}
                 <div className="flex flex-col border-r border-[#E9ECF2] bg-white" style={{ width: '260px', marginRight: '0px', paddingRight: '0px' }}>
                    <div className="px-5 py-2 border-b border-[#E9ECF2] flex items-center" style={{ paddingBottom: '8px', paddingLeft: '20px', height: '57px' }}>
                      <h3 style={{ fontSize: '14px', fontWeight: 500, margin: 0, color: '#223355' }}>报告维度</h3>
@@ -2547,211 +2537,6 @@ const ReportTemplateEdit: React.FC = () => {
                   </div>
                 </div>
               </>
-            ) : (
-              /* 关联工单页签内容 */
-              <div className="flex-1 flex flex-col bg-white">
-                {/* 自适应宽度的容器，高度拉伸至白色背景底部 */}
-                <div className="flex-1 w-full bg-white flex flex-col">
-                  {/* 查询条件栏 */}
-                  <div className="px-5 py-4 border-b border-[#E9ECF2] flex items-center" style={{ height: '57px' }}>
-                    <Form form={ticketSearchForm} layout="inline" className="mb-0 flex items-center w-full">
-                      <Form.Item name="sectionName" label="章节名称" className="mb-2">
-                        <Input placeholder="请输入章节名称" style={{ width: 220 }} />
-                      </Form.Item>
-                      <Form.Item name="sectionContent" label="章节内容" className="mb-2">
-                        <Input placeholder="请输入章节内容" style={{ width: 220 }} />
-                      </Form.Item>
-                      <Form.Item name="sectionLevel" label="章节级别" className="mb-2">
-                        <Select placeholder="请选择章节级别" style={{ width: 220 }} allowClear>
-                          <Option value="一级">一级章节</Option>
-                          <Option value="二级">二级章节</Option>
-                          <Option value="三级">三级章节</Option>
-                        </Select>
-                      </Form.Item>
-                      <div className="flex-1"></div>
-                      <Form.Item className="mb-2" style={{ marginRight: '10px' }}>
-                        <Button onClick={handleTicketReset}>重置</Button>
-                      </Form.Item>
-                      <Form.Item className="mb-2" style={{ marginRight: '0px' }}>
-                        <Button type="primary" onClick={handleTicketSearch}>查询</Button>
-                      </Form.Item>
-                    </Form>
-                  </div>
-
-                  {/* 操作栏 */}
-                  <div className="px-5 py-3 flex justify-between items-center">
-                    <div>
-                      <Button 
-                        danger 
-                        icon={<DeleteOutlined />}
-                        disabled={selectedTicketIds.length === 0}
-                        onClick={handleBatchDeleteTickets}
-                      >
-                        删除
-                      </Button>
-                    </div>
-                    <div className="text-gray-500">
-                      共{filteredTickets.length > 0 ? filteredTickets.length : relatedTickets.length}条数据
-                    </div>
-                  </div>
-
-                  {/* 列表区域 */}
-                  <div className="flex-1 p-5" style={{ paddingTop: '0px', overflowY: 'auto', maxHeight: 'calc(100vh - 300px)' }}>
-                    {relatedTickets.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full" style={{ minHeight: '300px' }}>
-                        <div className="mb-4">
-                          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="64" height="64" rx="32" fill="#F5F7FA"/>
-                            <path d="M32 20C25.3726 20 20 25.3726 20 32C20 38.6274 25.3726 44 32 44C38.6274 44 44 38.6274 44 32C44 25.3726 38.6274 20 32 20ZM32 22C37.5228 22 42 26.4772 42 32C42 37.5228 37.5228 42 32 42C26.4772 42 22 37.5228 22 32C22 26.4772 26.4772 22 32 22Z" fill="#D1D5DB"/>
-                            <path d="M28 28H36V30H28V28ZM28 32H36V34H28V32ZM28 36H32V38H28V36Z" fill="#D1D5DB"/>
-                          </svg>
-                        </div>
-                        <div className="text-gray-500 text-center">
-                          <div className="text-base mb-1">暂无已配置工单过滤的关联章节</div>
-                          <div className="text-sm text-gray-400">请先添加关联章节数据</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <SortableContext
-                          items={relatedTickets.map(item => item.id)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <Table
-                            dataSource={filteredTickets.length > 0 ? filteredTickets : relatedTickets}
-                            pagination={false}
-                            scroll={{ y: 'calc(100vh - 400px)' }}
-                            rowSelection={{
-                              selectedRowKeys: selectedTicketIds,
-                              onChange: (selectedRowKeys) => {
-                                setSelectedTicketIds(selectedRowKeys as string[]);
-                              },
-                              columnWidth: '5%',
-                            }}
-                        rowKey="id"
-                        locale={{
-                          emptyText: '暂无关联章节数据'
-                        }}
-                        style={{
-                          borderTop: '1px solid #E9ECF2',
-                          borderRadius: '0'
-                        }}
-                        components={{
-                          header: {
-                            cell: (props: any) => (
-                              <th 
-                                {...props} 
-                                style={{ 
-                                  ...props.style, 
-                                  height: '40px', 
-                                  backgroundColor: '#F5F7FA', 
-                                  color: '#223355',
-                                  fontWeight: 'medium'
-                                }} 
-                              />
-                            ),
-                          },
-                          body: {
-                            row: DraggableRow,
-                            cell: (props: any) => (
-                              <td 
-                                {...props} 
-                                style={{ 
-                                  ...props.style, 
-                                  color: '#223355'
-                                }} 
-                              />
-                            ),
-                          },
-                        }}
-                      >
-                          <Column
-                             title="拖拽"
-                             key="drag"
-                             width="5%"
-                             render={() => null}
-                           />
-                           <Column
-                             title="序号"
-                             dataIndex="index"
-                             key="index"
-                             width="5%"
-                             render={(_, __, index) => index + 1}
-                           />
-                        <Column
-                            title="章节名称"
-                            dataIndex="sectionName"
-                            key="sectionName"
-                            width="18%"
-                            ellipsis
-                          />
-
-                          <Column
-                            title="章节级别"
-                            dataIndex="sectionLevel"
-                            key="sectionLevel"
-                            width="10%"
-                            render={(value) => {
-                              const levelMap: Record<string, string> = {
-                                '一级': '一级章节',
-                                '二级': '二级章节',
-                                '三级': '三级章节'
-                              };
-                              return levelMap[value as string] || value;
-                            }}
-                          />
-                          <Column
-                             title="备注"
-                             dataIndex="remark"
-                             key="remark"
-                             width="20%"
-                             ellipsis
-                           />
-                        <Column
-                          title="操作"
-                          key="action"
-                          width="17%"
-                          render={(_, record: any) => (
-                            <div style={{ display: 'flex', gap: '0px' }}>
-                              <Button 
-                                type="link" 
-                                size="small"
-                                style={{ color: '#3388FF', padding: '0 4px' }}
-                                onClick={() => handleEditTicket(record)}
-                              >
-                                编辑
-                              </Button>
-                              <Button 
-                                type="link" 
-                                size="small"
-                                style={{ color: '#3388FF', padding: '0 4px' }}
-                                onClick={() => handleViewRelatedAppeals(record)}
-                              >
-                                查看诉求
-                              </Button>
-                              <Button 
-                                type="link" 
-                                size="small" 
-                                style={{ color: '#FF4433', padding: '0 4px' }}
-                                onClick={() => handleDeleteTicket(record)}
-                              >
-                                删除
-                              </Button>
-                            </div>
-                          )}
-                        />
-                      </Table>
-                        </SortableContext>
-                      </DndContext>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

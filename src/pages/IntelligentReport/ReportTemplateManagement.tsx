@@ -189,7 +189,7 @@ const ReportTemplateManagement: React.FC = () => {
       detail: {
         key: 'report-template-add',
         label: '新增模板',
-        path: '/intelligent-report/report-template-edit',
+        path: '/intelligent-report/report-template-edit-simple/new',
         closable: true
       }
     });
@@ -198,11 +198,25 @@ const ReportTemplateManagement: React.FC = () => {
 
   // 编辑模板
   const handleEdit = (record: ReportTemplate) => {
+    // 检查模板是否有内容（使用rich_text_content字段）
+    const hasRichTextContent = record.content_structure?.rich_text_content && 
+                              record.content_structure.rich_text_content.trim().length > 0;
+    
+    // 检查是否有章节内容
+    const hasTemplateContentItems = record.templateContentItems && 
+                                   Array.isArray(record.templateContentItems) && 
+                                   record.templateContentItems.length > 0;
+    
+    // 根据是否有内容决定跳转到哪个编辑页面
+    const editPath = (hasRichTextContent || hasTemplateContentItems)
+      ? `/intelligent-report/report-template-edit-simple/${record.id}`
+      : `/intelligent-report/report-template-edit/${record.id}`;
+    
     const addTabEvent = new CustomEvent('addTab', {
       detail: {
         key: `report-template-edit-${record.id}`,
         label: `编辑模板 - ${record.name}`,
-        path: `/intelligent-report/report-template-edit/${record.id}`,
+        path: editPath,
         closable: true
       }
     });

@@ -451,7 +451,7 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
                 value={formData.workOrderFilters.reportTimeStart && formData.workOrderFilters.reportTimeEnd ? 
                   [dayjs(formData.workOrderFilters.reportTimeStart), dayjs(formData.workOrderFilters.reportTimeEnd)] : null}
                 onChange={(dates) => {
-                  if (dates && dates.length === 2) {
+                  if (dates?.length === 2) {
                     setFormData(prev => ({
                       ...prev,
                       workOrderFilters: {
