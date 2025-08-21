@@ -82,6 +82,8 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
     content: '',
     workOrderEnabled: false,
     workOrderFilters: {
+      reportTimeStart: '',
+      reportTimeEnd: '',
       appealSource: [],
       region: [],
       appealItem: [],
@@ -131,7 +133,18 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
       setExpandedCategories(initialExpanded);
       
       if (mode === 'edit' && editData) {
-        setFormData(editData);
+        setFormData({
+          ...editData,
+          workOrderFilters: {
+            reportTimeStart: '',
+            reportTimeEnd: '',
+            appealSource: [],
+            region: [],
+            appealItem: [],
+            appealTags: [],
+            ...editData.workOrderFilters
+          }
+        });
       } else {
         // 重置表单
         setFormData({
@@ -139,6 +152,8 @@ const ContentEditModal: React.FC<ContentEditModalProps> = ({
           content: '',
           workOrderEnabled: false,
           workOrderFilters: {
+            reportTimeStart: '',
+            reportTimeEnd: '',
             appealSource: [],
             region: [],
             appealItem: [],

@@ -11,12 +11,28 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, Select, Form, message, Tabs, Row, Col, DatePicker, Tree, Table, Modal } from 'antd';
+import { Button, Input, Select, Form, message, Tabs, Row, Col, DatePicker, Tree, Table, Modal, Card, Space, Typography, TreeSelect, Tag, Empty } from 'antd';
 import type { TreeDataNode } from 'antd';
-import { SaveOutlined, ArrowLeftOutlined, EyeOutlined, EyeInvisibleOutlined, PlayCircleOutlined, DownOutlined, UpOutlined, BarChartOutlined, FolderOutlined, DeleteOutlined, HolderOutlined } from '@ant-design/icons';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useSortable } from '@dnd-kit/sortable';
+import { SaveOutlined, ArrowLeftOutlined, EyeOutlined, EyeInvisibleOutlined, PlayCircleOutlined, DownOutlined, UpOutlined, BarChartOutlined, FolderOutlined, DeleteOutlined, HolderOutlined, EditOutlined, PlusOutlined, DragOutlined } from '@ant-design/icons';
+import ContentEditModal from '@/components/ContentEditModal';
+import {
+  DndContext,
+  closestCorners,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  DragOverlay,
+  DropAnimation,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/utils';
@@ -29,6 +45,27 @@ const { Option } = Select;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 const { Column } = Table;
+const { Text } = Typography;
+
+// 内容项接口定义
+interface ContentItem {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
+  level: 1 | 2 | 3;
+  parent_id?: string;
+  children?: ContentItem[];
+  workOrderEnabled?: boolean;
+  workOrderFilters?: {
+    reportTimeStart?: string;
+    reportTimeEnd?: string;
+    appealSource: string[];
+    region: string[];
+    appealItem: string[];
+    appealTags: string[];
+  };
+}
 
 // 可拖拽的表格行组件
 const DraggableRow = ({ index, moveRow, className, style, ...restProps }: any) => {
@@ -155,39 +192,355 @@ const ReportTemplateEdit: React.FC = () => {
   const [appealsData, setAppealsData] = useState<any[]>([]);
   const [appealsLoading, setAppealsLoading] = useState(false);
   
+  // 模板编辑相关状态
+  const [templateContentItems, setTemplateContentItems] = useState<ContentItem[]>([]);
+  const [templateEditModalVisible, setTemplateEditModalVisible] = useState(false);
+  const [currentTemplateEditItem, setCurrentTemplateEditItem] = useState<any>(null);
+  const [templateEditMode, setTemplateEditMode] = useState<'add' | 'edit'>('add');
+  const [templateEditParentId, setTemplateEditParentId] = useState<string | undefined>(undefined);
+  const [templateEditLevel, setTemplateEditLevel] = useState<1 | 2 | 3>(1);
 
-  
-  // 拖拽传感器
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+  // 拖拽传感器配置
+  const templateSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
     })
   );
   
-  // 处理拖拽结束
-  const handleDragEnd = (event: any) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+  
+  // 新增章节编辑相关状态
+  const [contentModalVisible, setContentModalVisible] = useState(false);
+  const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeItem, setActiveItem] = useState<ContentItem | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  
+  // 维度选择相关状态
+  const [selectedDimension, setSelectedDimension] = useState<string | null>(null);
+  const [dimensionCategories, setDimensionCategories] = useState<any[]>([]);
+  const [treeData, setTreeData] = useState<any[]>([]);
+  const [dimensions, setDimensions] = useState<any[]>([]);
+  
+  // 将分类数据转换为TreeSelect格式
+  const buildTreeData = (categories: Array<{
+    id: string;
+    name: string;
+    parent_id?: string;
+    description?: string;
+    created_at?: string;
+    created_by?: string;
+  }>) => {
+    const categoryMap = new Map();
+    const rootCategories: any[] = [];
+
+    // 创建所有节点
+    categories.forEach((category: any) => {
+      categoryMap.set(category.id, {
+        value: category.id,
+        title: category.name,
+        key: category.id,
+        children: []
+      });
+    });
+
+    // 构建树结构
+    categories.forEach((category: any) => {
+      const node = categoryMap.get(category.id);
+      if (category.parent_id) {
+        const parent = categoryMap.get(category.parent_id);
+        if (parent) {
+          parent.children.push(node);
+        }
+      } else {
+        rootCategories.push(node);
+      }
+    });
+
+    return rootCategories;
+  };
+  
+  // 模板编辑相关函数
+  
+  const handleEditTemplateContent = (item: ContentItem) => {
+    setTemplateEditMode('edit');
+    setCurrentTemplateEditItem(item);
+    setTemplateEditModalVisible(true);
+  };
+  
+  const handleDeleteTemplateContent = (itemId: string) => {
+    const deleteItem = (items: ContentItem[]): ContentItem[] => {
+      return items.filter(item => {
+        if (item.id === itemId) {
+          return false;
+        }
+        if (item.children) {
+          item.children = deleteItem(item.children);
+        }
+        return true;
+      });
+    };
+    setTemplateContentItems(prev => deleteItem(prev));
+    message.success('删除成功');
+  };
+  
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    const item = findTemplateItem(templateContentItems, active.id as string);
+    setActiveItem(item);
+    setOverId(null);
+  };
+  
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    setOverId(over ? over.id as string : null);
+  };
+  
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    
+    setActiveId(null);
+    setActiveItem(null);
+    setOverId(null);
     
     if (!over || active.id === over.id) {
       return;
     }
     
-    setRelatedTickets((items) => {
-      const oldIndex = items.findIndex((item) => item.id === active.id);
-      const newIndex = items.findIndex((item) => item.id === over.id);
-      
-      const newItems = arrayMove(items, oldIndex, newIndex);
-      // 更新排序字段和数据隔离相关字段
-      return newItems.map((item, index) => ({
-        ...item,
-        sort: index + 1,
-        // 数据隔离：更新版本和时间戳，确保排序变更可追踪
-        updatedAt: new Date().toISOString(),
-        version: (item.version || 1) + 1
-      }));
-    });
+    // 这里可以添加拖拽排序逻辑
+    console.log('拖拽结束:', { activeId: active.id, overId: over.id });
   };
+  
+  // 获取所有项目ID的辅助函数
+  const getAllItems = (items: ContentItem[]): ContentItem[] => {
+    const result: ContentItem[] = [];
+    
+    const traverse = (itemList: ContentItem[]) => {
+      itemList.forEach(item => {
+        result.push(item);
+        if (item.children && item.children.length > 0) {
+          traverse(item.children);
+        }
+      });
+    };
+    
+    traverse(items);
+    return result;
+  };
+  
+
+  
+  const findTemplateItem = (items: ContentItem[], id: string): ContentItem | null => {
+    for (const item of items) {
+      if (item.id === id) {
+        return item;
+      }
+      if (item.children) {
+        const found = findTemplateItem(item.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  
+  // 渲染模板内容项
+  const renderTemplateContentItem = (item: ContentItem) => {
+    const isActive = templateActiveId === item.id;
+    const isOver = templateOverId === item.id;
+    
+    return (
+      <DraggableContentCard
+        key={item.id}
+        item={item}
+        isActive={isActive}
+        isOver={isOver}
+      />
+    );
+  };
+  
+  const handleTemplateEditSave = (values: any) => {
+    if (templateEditMode === 'add') {
+      const newItem: ContentItem = {
+        id: Date.now().toString(),
+        title: values.title,
+        content: values.content,
+        level: templateEditLevel!,
+        order: templateContentItems.length,
+        parent_id: templateEditParentId,
+        children: [],
+      };
+      
+      if (templateEditParentId) {
+        // 添加到父级的children中
+        const addToParent = (items: ContentItem[]): ContentItem[] => {
+          return items.map(item => {
+            if (item.id === templateEditParentId) {
+              return {
+                ...item,
+                children: [...(item.children || []), newItem]
+              };
+            }
+            if (item.children) {
+              return {
+                ...item,
+                children: addToParent(item.children)
+              };
+            }
+            return item;
+          });
+        };
+        setTemplateContentItems(prev => addToParent(prev));
+      } else {
+        setTemplateContentItems(prev => [...prev, newItem]);
+      }
+      message.success('添加成功');
+    } else {
+      // 编辑模式
+      const updateItem = (items: ContentItem[]): ContentItem[] => {
+        return items.map(item => {
+          if (item.id === currentTemplateEditItem?.id) {
+            return {
+              ...item,
+              title: values.title,
+              content: values.content
+            };
+          }
+          if (item.children) {
+            return {
+              ...item,
+              children: updateItem(item.children)
+            };
+          }
+          return item;
+        });
+      };
+      setTemplateContentItems(prev => updateItem(prev));
+      message.success('修改成功');
+    }
+    setTemplateEditModalVisible(false);
+  };
+  
+  const handleTemplateEditCancel = () => {
+    setTemplateEditModalVisible(false);
+    setCurrentTemplateEditItem(null);
+  };
+  
+  // 可拖拽的内容卡片组件
+  const DraggableContentCard = ({ item, isActive, isOver }: { item: ContentItem; isActive: boolean; isOver: boolean }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+    } = useSortable({ id: item.id });
+    
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isActive ? 0.5 : 1,
+      touchAction: 'none',
+      ...(isActive || isOver ? { '--tw-ring-color': '#3388FF' } : {})
+    };
+    
+    const levelColors = {
+      1: 'bg-blue-50 border-blue-200',
+      2: 'bg-green-50 border-green-200', 
+      3: 'bg-orange-50 border-orange-200'
+    };
+    
+    const levelTags = {
+      1: <Tag color="blue">一级章节</Tag>,
+      2: <Tag color="green">二级章节</Tag>,
+      3: <Tag color="orange">三级章节</Tag>
+    };
+    
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className={cn(
+          "mb-3 p-4 border-2 rounded-lg transition-all cursor-grab active:cursor-grabbing",
+          levelColors[item.level],
+          isActive ? "ring-2 shadow-lg" : "hover:shadow-md",
+          isActive && isOver ? "ring-2" : ""
+        )}
+      >
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2 flex-1 select-none">
+            <DragOutlined className="hover:opacity-80" style={{ color: '#3388FF' }} />
+            {levelTags[item.level]}
+            <h4 className="font-medium text-[#223355] m-0">{item.title}</h4>
+          </div>
+          <div className="flex gap-1 ml-2">
+            {item.level < 3 && (
+              <Button
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddChildContent(item.id);
+                }}
+                title="新增子内容"
+              />
+            )}
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditTemplateContent(item);
+              }}
+              title="编辑"
+            />
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteTemplateContent(item.id);
+              }}
+              title="删除"
+            />
+          </div>
+        </div>
+        
+        <p className="text-sm text-gray-600 mb-2 line-clamp-2 select-none">
+          {item.content}
+        </p>
+        
+        {/* 渲染子内容 - 始终渲染子内容区域，即使没有子项，以便支持拖拽到此处 */}
+        <div className="ml-6 mt-3 space-y-2 min-h-[20px]">
+          {item.children && item.children.length > 0 ? (
+            item.children.map((child) => (
+              <DraggableContentCard key={child.id} item={child} isActive={templateActiveId === child.id} isOver={templateOverId === child.id} />
+            ))
+          ) : (
+            // 空子内容区域，用于接收拖拽，但不显示提示文字
+            <div className="min-h-[20px]"></div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+
 
   // 获取页面标题
   const getPageTitle = () => {
@@ -697,6 +1050,16 @@ const ReportTemplateEdit: React.FC = () => {
           console.log('⚠️ 模板没有富文本内容');
         }
         
+        // 设置模板章节内容
+        if (currentTemplate.templateContentItems && Array.isArray(currentTemplate.templateContentItems)) {
+          console.log('📋 准备设置模板章节内容:', currentTemplate.templateContentItems);
+          setTemplateContentItems(currentTemplate.templateContentItems);
+          console.log('✅ 模板章节内容已设置');
+        } else {
+          console.log('⚠️ 模板没有章节内容数据，使用空数组');
+          setTemplateContentItems([]);
+        }
+        
         // 加载关联工单数据
          try {
            const relatedTicketsKey = `relatedTickets_${id}`;
@@ -852,6 +1215,7 @@ const ReportTemplateEdit: React.FC = () => {
           existingTemplates[templateIndex] = {
             ...existingTemplates[templateIndex],
             ...values,
+            templateContentItems: templateContentItems, // 保存章节内容
             updated_at: new Date().toISOString(),
             updated_by: '管理员'
           };
@@ -862,6 +1226,7 @@ const ReportTemplateEdit: React.FC = () => {
         const newTemplate = {
           id: templateId,
           ...values,
+          templateContentItems: templateContentItems, // 保存章节内容
           is_published: false,
           created_at: new Date().toISOString(),
           created_by: '管理员'
@@ -1021,7 +1386,7 @@ const ReportTemplateEdit: React.FC = () => {
     },
     {
       key: 'workorder',
-      label: '关联工单',
+      label: '关联章节',
     }
   ];
 
@@ -1039,238 +1404,408 @@ const ReportTemplateEdit: React.FC = () => {
 
   // 在光标位置插入维度内容
   const insertDimensionContent = (dimension: any) => {
-    console.log('insertDimensionContent被调用', dimension);
+    // 获取维度的章节结构，支持多种数据格式
+    const contentItems = dimension.content_items || dimension.content || [];
     
-    // 构建维度内容章节
-    function buildContentSections(): string {
-      let content = '';
-      
-      // 获取维度的内容结构
-      const contentStructure = dimension.content_structure || {};
-      const level1Contents = contentStructure.level1Contents || [];
-      
-      // 如果没有内容结构，尝试从content_items获取
-      const contentItems = dimension.content_items || [];
-      
-      // 添加调试信息
-      console.log('维度数据结构:', dimension);
-      console.log('content_structure:', contentStructure);
-      console.log('level1Contents:', level1Contents);
-      console.log('content_items:', contentItems);
-      
-      // 自动创建关联工单记录
-      const createRelatedTicketRecords = (contents: any[], level: string) => {
-        contents.forEach((content: any) => {
-          // 检查该内容项是否开启了关联工单配置
-          if (content.workOrderEnabled) {
-            const newTicketRecord = {
-              id: `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              sectionName: content.title || content.name || '',
-              sectionContent: content.content || content.description || '',
-              sectionLevel: level,
-              // 复制维度管理中的工单过滤条件作为初始值（深拷贝确保数据隔离）
-              workOrderFilters: {
-                reportTimeStart: content.workOrderFilters?.reportTimeStart || '',
-                reportTimeEnd: content.workOrderFilters?.reportTimeEnd || '',
-                appealSource: [...(content.workOrderFilters?.appealSource || [])],
-                region: [...(content.workOrderFilters?.region || [])],
-                appealItem: [...(content.workOrderFilters?.appealItem || [])],
-                appealTags: [...(content.workOrderFilters?.appealTags || [])]
-              },
-              // 添加排序字段
-              sortOrder: relatedTickets.length,
-              // 数据隔离标识：标记为模板配置数据，与维度管理原始数据物理隔离
-              dataSource: 'template_config',
-              templateId: id, // 关联到具体模板ID
-              originalDimensionId: content.id, // 记录原始维度ID，但不直接引用
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              // 版本控制，用于数据同步和冲突检测
-              version: 1
-            };
-            
-            // 添加到关联工单列表
-            setRelatedTickets(prev => [...prev, newTicketRecord]);
-            console.log('自动创建关联工单记录:', newTicketRecord);
+    if (contentItems.length === 0) {
+      message.warning('该维度暂无章节内容');
+      return;
+    }
+    
+    // 生成唯一ID的计数器，避免时间戳冲突
+    let idCounter = 0;
+    const generateUniqueId = () => {
+      return `template_${Date.now()}_${++idCounter}_${Math.random().toString(36).substr(2, 9)}`;
+    };
+    
+    // 全局去重检查：收集所有现有标题（包括嵌套的子章节）
+    const getAllExistingTitles = (items: ContentItem[]): Set<string> => {
+      const titles = new Set<string>();
+      const collectTitles = (itemList: ContentItem[]) => {
+        itemList.forEach(item => {
+          titles.add(item.title.trim().toLowerCase()); // 统一转换为小写进行比较
+          if (item.children && item.children.length > 0) {
+            collectTitles(item.children);
           }
-          
-          // 递归处理子级内容
-          if (content.children && content.children.length > 0) {
-            const nextLevel = level === '一级' ? '二级' : '三级';
-            createRelatedTicketRecords(content.children, nextLevel);
+        });
+      };
+      collectTitles(items);
+      return titles;
+    };
+    
+    const existingTitles = getAllExistingTitles(templateContentItems);
+    
+    // 预处理维度数据：智能去重并保持层级结构
+    const preprocessDimensionData = (items: any[]): any[] => {
+      // 全局去重检查：收集所有要插入的标题（包括所有层级）
+      const allDimensionTitles = new Set<string>();
+      
+      // 递归收集所有标题
+      const collectAllTitles = (itemList: any[], depth: number = 0) => {
+        itemList.forEach((item, index) => {
+          if (item.title) {
+            const normalizedTitle = item.title.trim().toLowerCase();
+            allDimensionTitles.add(normalizedTitle);
+            console.log(`收集标题[深度${depth}][索引${index}]: "${item.title}" -> "${normalizedTitle}"`);
+          }
+          if (item.children && Array.isArray(item.children) && item.children.length > 0) {
+            console.log(`处理 "${item.title}" 的 ${item.children.length} 个子项`);
+            collectAllTitles(item.children, depth + 1);
           }
         });
       };
       
-      if (level1Contents.length > 0) {
-        // 使用content_structure数据
-        level1Contents.forEach((level1: any) => {
-          // 一级内容标题
-          content += `# ${level1.title}\n\n`;
-          // 一级内容正文
-          content += `${level1.content}\n\n`;
+      collectAllTitles(items);
+      
+      // 智能去重：保持层级结构的完整性
+      const globalProcessedTitles = new Set<string>();
+      
+      const deduplicateItems = (itemList: any[], parentContext: string = '', depth: number = 0): any[] => {
+        const result: any[] = [];
+        console.log(`\n=== 开始处理层级 ${depth}，上下文: ${parentContext || '根级别'} ===`);
+        console.log(`待处理项目数量: ${itemList.length}`);
+        
+        itemList.forEach((item, index) => {
+          const normalizedTitle = item.title?.trim().toLowerCase();
+          console.log(`\n[${depth}-${index}] 处理项目: "${item.title}"`);
           
-          // 处理二级内容
-          if (level1.children && level1.children.length > 0) {
-            level1.children.forEach((level2: any) => {
-              // 二级内容标题
-              content += `## ${level2.title}\n\n`;
-              // 二级内容正文
-              content += `${level2.content}\n\n`;
-              
-              // 处理三级内容
-              if (level2.children && level2.children.length > 0) {
-                level2.children.forEach((level3: any) => {
-                  // 三级内容标题
-                  content += `### ${level3.title}\n\n`;
-                  // 三级内容正文
-                  content += `${level3.content}\n\n`;
-                });
-              }
-            });
+          // 检查标题是否有效
+          if (!normalizedTitle) {
+            console.log(`[${depth}-${index}] ❌ 跳过无效标题: ${item.title}`);
+            return;
           }
+          
+          // 跳过已存在的标题（与现有模板重复）
+          if (existingTitles.has(normalizedTitle)) {
+            console.log(`[${depth}-${index}] ❌ 跳过重复标题（与现有模板重复）: "${item.title}"`);
+            // 当父项重复时，跳过整个分支以保持层级结构完整性
+            // 不再提升子项，避免破坏层级关系和造成重复插入
+            return;
+          }
+          
+          // 跳过在当前维度中已处理的标题（全局去重）
+          if (globalProcessedTitles.has(normalizedTitle)) {
+            console.log(`[${depth}-${index}] ❌ 跳过重复标题（维度内重复）: "${item.title}"`);
+            return;
+          }
+          
+          console.log(`[${depth}-${index}] ✅ 标题通过检查: "${item.title}"`);
+          globalProcessedTitles.add(normalizedTitle);
+          
+          // 处理子项去重，保持层级结构
+          const deduplicatedItem = { ...item };
+          if (item.children && Array.isArray(item.children) && item.children.length > 0) {
+            console.log(`[${depth}-${index}] 🔄 处理 "${item.title}" 的 ${item.children.length} 个子项`);
+            deduplicatedItem.children = deduplicateItems(item.children, parentContext + '/' + item.title, depth + 1);
+            // 如果所有子项都被去重了，但父项是新的，仍然保留父项
+            if (deduplicatedItem.children.length === 0) {
+              console.log(`[${depth}-${index}] ⚠️ 保留父项但移除所有重复子项: "${item.title}"`);
+            } else {
+              console.log(`[${depth}-${index}] ✅ "${item.title}" 保留了 ${deduplicatedItem.children.length} 个子项`);
+            }
+          }
+          
+          console.log(`[${depth}-${index}] ➕ 添加到结果: "${item.title}"`);
+          result.push(deduplicatedItem);
         });
         
-        // 自动创建关联工单记录
-        createRelatedTicketRecords(level1Contents, '一级');
-      } else if (contentItems.length > 0) {
-        // 使用content_items数据
-        console.log('使用content_items数据，开始处理');
-        
-        // 递归处理内容项
-        function processContentItems(items: any[], parentId: string | null = null, level: number = 1): void {
-          // 获取当前层级的内容项
-          let currentLevelItems: any[] = [];
-          
-          if (level === 1) {
-            // 一级内容：没有parent_id或parent_id为null/undefined的项目
-            currentLevelItems = items.filter((item: any) => 
-              !item.parent_id || item.parent_id === null || item.parent_id === undefined
-            );
-          } else {
-            // 二级和三级内容：parent_id匹配的项目
-            currentLevelItems = items.filter((item: any) => item.parent_id === parentId);
-          }
-          
-          console.log(`处理第${level}级内容，parentId: ${parentId}，找到${currentLevelItems.length}个项目:`, currentLevelItems);
-          
-          currentLevelItems.forEach((item: any) => {
-            const prefix = '#'.repeat(level);
-            content += `${prefix} ${item.title || item.name}\n\n`;
-            content += `${item.content || item.description || ''}\n\n`;
-            console.log(`添加第${level}级内容: ${item.title || item.name}`);
-            
-            // 处理子级内容 - 优先使用children数组
-            if (item.children && item.children.length > 0) {
-              console.log(`处理${item.title}的children:`, item.children);
-              processContentItems(item.children, item.id, level + 1);
-            } else {
-              // 从原数组中查找子级
-              const childItems = items.filter((child: any) => child.parent_id === item.id);
-              if (childItems.length > 0) {
-                console.log(`从原数组中找到${item.title}的子级:`, childItems);
-                processContentItems(items, item.id, level + 1);
-              }
-            }
-          });
+        console.log(`=== 层级 ${depth} 处理完成，返回 ${result.length} 个项目 ===\n`);
+        return result;
+      };
+      
+      return deduplicateItems(items);
+    };
+    
+    // 智能构建层级关系：保持现有结构或构建新结构
+    const buildHierarchy = (items: any[]): any[] => {
+      // 更严格地检查是否已经有完整的层级结构
+      const hasCompleteHierarchy = items.some(item => {
+        // 必须有children且children不为空
+        if (item.children && Array.isArray(item.children) && item.children.length > 0) {
+          // 检查是否有多层级嵌套（至少有二级和三级）
+          const hasSecondLevel = item.children.length > 0;
+          const hasThirdLevel = item.children.some(child => 
+            child.children && Array.isArray(child.children) && child.children.length > 0
+          );
+          // 只有当存在至少二级层级时才认为是完整结构
+          return hasSecondLevel;
         }
-        
-        processContentItems(contentItems);
-        
-        // 自动创建关联工单记录
-        createRelatedTicketRecords(contentItems, '一级');
-      } else {
-        // 如果没有内容数据，为了测试，提供一些示例内容
-        console.log('进入else分支，开始构建示例内容');
-        content = `# ${dimension.name || '维度标题'}\n\n`;
-        console.log('添加一级标题:', content);
-        
-        content += `这是${dimension.name || '维度'}的总体概况内容。\n\n`;
-        console.log('添加一级内容后:', content);
-        
-        // 添加二级内容示例
-        content += `## 详细分析\n\n`;
-        console.log('添加二级标题后:', content);
-        
-        content += `这是${dimension.name || '维度'}的详细分析内容。\n\n`;
-        console.log('添加二级内容后:', content);
-        
-        // 添加三级内容示例
-        content += `### 具体指标\n\n`;
-        console.log('添加第一个三级标题后:', content);
-        
-        content += `这是${dimension.name || '维度'}的具体指标内容。\n\n`;
-        console.log('添加第一个三级内容后:', content);
-        
-        content += `### 趋势分析\n\n`;
-        console.log('添加第二个三级标题后:', content);
-        
-        content += `这是${dimension.name || '维度'}的趋势分析内容。\n\n`;
-        console.log('添加第二个三级内容后:', content);
-        
-        // 再添加一个二级内容
-        content += `## 总结建议\n\n`;
-        console.log('添加第二个二级标题后:', content);
-        
-        content += `这是${dimension.name || '维度'}的总结建议内容。\n\n`;
-        console.log('最终构建的完整内容:', content);
+        return false;
+      });
+      
+      if (hasCompleteHierarchy) {
+        // 已经是完整的层级结构，保持原有结构
+        console.log('检测到完整层级结构，保持原有结构');
+        return items.map(item => ({
+          ...item,
+          children: item.children || []
+        }));
       }
       
-      return content;
-    }
-    
-    const insertContent = buildContentSections();
-    console.log('=== 插入内容调试信息 ===');
-    console.log('要插入的内容长度:', insertContent.length);
-    console.log('要插入的内容:', insertContent);
-    console.log('要插入的内容（转义显示）:', JSON.stringify(insertContent));
-    
-    // 获取当前内容和光标位置
-    const currentContent = editorContent || form.getFieldValue('content') || '';
-    console.log('当前编辑器内容:', currentContent);
-    let insertPosition = currentContent.length;
-    
-    if (editorRef.current) {
-      const textAreaElement = editorRef.current?.resizableTextArea?.textArea || editorRef.current;
-      if (textAreaElement) {
-        insertPosition = textAreaElement.selectionStart;
-        console.log('光标位置:', insertPosition);
+      // 检查是否有parent_id信息，如果有则构建层级关系
+      const hasParentIdInfo = items.some(item => 
+        item.parent_id && 
+        item.parent_id !== null && 
+        item.parent_id !== '' && 
+        item.parent_id !== 'null' && 
+        item.parent_id !== 'undefined'
+      );
+      
+      if (!hasParentIdInfo) {
+        // 没有parent_id信息，按level分组构建层级
+        console.log('按level信息构建层级结构');
+        return buildHierarchyByLevel(items);
       }
-    }
-    
-    // 构建新内容
-    const newContent = currentContent.substring(0, insertPosition) + insertContent + currentContent.substring(insertPosition);
-    console.log('=== 最终内容调试信息 ===');
-    console.log('新内容长度:', newContent.length);
-    console.log('新内容:', newContent);
-    console.log('新内容（转义显示）:', JSON.stringify(newContent));
-    
-    // 更新状态和表单
-    setEditorContent(newContent);
-    form.setFieldsValue({ content: newContent });
-    console.log('内容已更新到状态和表单');
-    
-    // 验证更新后的状态
-    setTimeout(() => {
-      const updatedContent = form.getFieldValue('content');
-      console.log('=== 验证更新结果 ===');
-      console.log('表单中的内容:', updatedContent);
-      console.log('editorContent状态:', editorContent);
-    }, 100);
-    
-    // 设置光标位置
-    setTimeout(() => {
-      if (editorRef.current) {
-        const textAreaElement = editorRef.current?.resizableTextArea?.textArea || editorRef.current;
-        if (textAreaElement) {
-          textAreaElement.focus();
-          textAreaElement.setSelectionRange(insertPosition + insertContent.length, insertPosition + insertContent.length);
-          console.log('光标位置已设置');
+      
+      // 使用parent_id构建层级关系
+      console.log('使用parent_id构建层级结构');
+      const itemMap = new Map<string, any>();
+      const rootItems: any[] = [];
+      
+      // 创建映射，使用唯一键避免冲突
+      items.forEach((item, index) => {
+        const clonedItem = { ...item, children: [] };
+        // 使用组合键确保唯一性
+        const uniqueKey = item.id ? `id_${item.id}` : `title_${item.title}_${index}`;
+        itemMap.set(uniqueKey, clonedItem);
+        
+        // 同时保持原有的映射方式作为备用
+        if (item.id) {
+          itemMap.set(item.id.toString(), clonedItem);
         }
-      }
-    }, 50);
+        if (item.title) {
+          itemMap.set(item.title, clonedItem);
+        }
+      });
+      
+      // 构建父子关系
+      items.forEach((item, index) => {
+        const uniqueKey = item.id ? `id_${item.id}` : `title_${item.title}_${index}`;
+        const clonedItem = itemMap.get(uniqueKey) || itemMap.get(item.id?.toString()) || itemMap.get(item.title);
+        if (!clonedItem) return;
+        
+        const hasValidParentId = item.parent_id && 
+          item.parent_id !== null && 
+          item.parent_id !== '' && 
+          item.parent_id !== 'null' && 
+          item.parent_id !== 'undefined';
+        
+        if (hasValidParentId) {
+          const parentItem = itemMap.get(item.parent_id.toString()) || 
+                           itemMap.get(`id_${item.parent_id}`) ||
+                           Array.from(itemMap.values()).find(p => p.title === item.parent_id);
+          
+          if (parentItem && parentItem !== clonedItem) {
+            parentItem.children.push(clonedItem);
+          } else {
+            rootItems.push(clonedItem);
+          }
+        } else {
+          rootItems.push(clonedItem);
+        }
+      });
+      
+      return rootItems;
+    };
     
-    message.success(`已插入维度章节：${dimension.name || dimension.title}`);
+    // 按level构建层级结构的辅助函数
+    const buildHierarchyByLevel = (items: any[]): any[] => {
+      const levelGroups: { [key: number]: any[] } = {};
+      
+      // 按level分组
+      items.forEach(item => {
+        const level = item.level || 1;
+        if (!levelGroups[level]) {
+          levelGroups[level] = [];
+        }
+        levelGroups[level].push({ ...item, children: [] });
+      });
+      
+      // 构建层级关系：1级作为根，2级作为1级的子项，3级作为2级的子项
+      const level1Items = levelGroups[1] || [];
+      const level2Items = levelGroups[2] || [];
+      const level3Items = levelGroups[3] || [];
+      
+      // 将3级项分配给2级项
+      level2Items.forEach((level2Item, index) => {
+        const startIndex = Math.floor(index * level3Items.length / level2Items.length);
+        const endIndex = Math.floor((index + 1) * level3Items.length / level2Items.length);
+        level2Item.children = level3Items.slice(startIndex, endIndex);
+      });
+      
+      // 将2级项分配给1级项
+      level1Items.forEach((level1Item, index) => {
+        const startIndex = Math.floor(index * level2Items.length / level1Items.length);
+        const endIndex = Math.floor((index + 1) * level2Items.length / level1Items.length);
+        level1Item.children = level2Items.slice(startIndex, endIndex);
+      });
+      
+      return level1Items;
+    };
+    
+    // 转换为模板格式
+    const convertToTemplateFormat = (items: any[]): ContentItem[] => {
+      const result: ContentItem[] = [];
+      let autoTitleCounter = 1;
+      
+      // 收集所有已存在的标题（包括模板中的和当前结果中的）
+      const getAllExistingTitles = (): Set<string> => {
+        const allTitles = new Set<string>();
+        
+        // 添加模板中已有的标题
+        existingTitles.forEach(title => allTitles.add(title));
+        
+        // 添加当前结果中的标题
+        const addResultTitles = (items: ContentItem[]) => {
+          items.forEach(item => {
+            allTitles.add(item.title.toLowerCase());
+            if (item.children && item.children.length > 0) {
+              addResultTitles(item.children);
+            }
+          });
+        };
+        addResultTitles(result);
+        
+        console.log('所有已存在标题:', Array.from(allTitles));
+        return allTitles;
+      };
+      
+      // 生成不重复的自动标题
+      const generateUniqueTitle = (baseTitle?: string): string => {
+        if (baseTitle && baseTitle.trim()) {
+          const trimmedTitle = baseTitle.trim();
+          const allTitles = getAllExistingTitles();
+          
+          // 检查原标题是否重复
+          if (!allTitles.has(trimmedTitle.toLowerCase())) {
+            console.log(`使用原标题: ${trimmedTitle}`);
+            return trimmedTitle;
+          }
+          
+          // 如果重复，生成带编号的标题
+          let counter = 1;
+          let uniqueTitle: string;
+          do {
+            uniqueTitle = `${trimmedTitle}_${counter++}`;
+          } while (allTitles.has(uniqueTitle.toLowerCase()));
+          
+          console.log(`标题重复，生成新标题: ${uniqueTitle}`);
+          return uniqueTitle;
+        }
+        
+        // 生成自动标题
+        const allTitles = getAllExistingTitles();
+        let autoTitle: string;
+        do {
+          autoTitle = `章节${autoTitleCounter++}`;
+        } while (allTitles.has(autoTitle.toLowerCase()));
+        
+        console.log(`生成自动标题: ${autoTitle}`);
+        return autoTitle;
+      };
+      
+      const processItem = (item: any, parentId?: string, currentLevel: number = 1, processedPath: string[] = []): ContentItem => {
+        // 防止循环引用和重复处理
+        const itemKey = `${item.title || 'untitled'}_${currentLevel}`;
+        if (processedPath.includes(itemKey)) {
+          console.warn(`检测到循环引用或重复处理: ${itemKey}，跳过处理`);
+          return {
+            id: generateUniqueId(),
+            title: `跳过_${item.title || 'untitled'}`,
+            content: '',
+            order: templateContentItems.length + result.length + 1,
+            level: Math.min(currentLevel, 3) as 1 | 2 | 3,
+            parent_id: parentId,
+            children: []
+          };
+        }
+        
+        const newPath = [...processedPath, itemKey];
+        console.log(`处理项目: ${item.title}, 层级: ${currentLevel}, 路径: ${newPath.join(' -> ')}`);
+        
+        // 智能确定层级：优先使用原有level，其次使用currentLevel
+        let itemLevel: 1 | 2 | 3;
+        if (item.level && [1, 2, 3].includes(Number(item.level))) {
+          itemLevel = Number(item.level) as 1 | 2 | 3;
+          console.log(`使用原有层级 ${itemLevel} for ${item.title}`);
+        } else {
+          itemLevel = Math.min(currentLevel, 3) as 1 | 2 | 3;
+          console.log(`使用计算层级 ${itemLevel} for ${item.title} (currentLevel: ${currentLevel})`);
+        }
+        
+        const templateItem: ContentItem = {
+          id: generateUniqueId(),
+          title: generateUniqueTitle(item.title),
+          content: item.content || '',
+          order: templateContentItems.length + result.length + 1,
+          level: itemLevel,
+          parent_id: parentId,
+          children: [],
+          workOrderEnabled: item.workOrderEnabled || false,
+          workOrderFilters: item.workOrderFilters || {
+            reportTimeStart: '',
+            reportTimeEnd: '',
+            appealSource: [],
+            region: [],
+            appealItem: [],
+            appealTags: []
+          }
+        };
+        
+        // 递归处理子项，确保层级递增
+        if (item.children && Array.isArray(item.children) && item.children.length > 0) {
+          console.log(`处理 ${item.title} 的 ${item.children.length} 个子项`);
+          templateItem.children = item.children.map((child: any, index: number) => {
+            // 确保子项的层级比父项高1级，但不超过3级
+            const childLevel = Math.min(itemLevel + 1, 3);
+            console.log(`处理子项 ${index + 1}/${item.children.length}: ${child.title}, 父级: ${item.title}`);
+            return processItem(child, templateItem.id, childLevel, newPath);
+          });
+          console.log(`${item.title} 处理完成，包含 ${templateItem.children.length} 个子项`);
+        }
+        
+        return templateItem;
+      };
+      
+      // 处理所有根级别项
+      items.forEach(item => {
+        const processedItem = processItem(item);
+        result.push(processedItem);
+      });
+      
+      return result;
+    };
+    
+    // 执行数据处理流程
+    const deduplicatedItems = preprocessDimensionData(contentItems);
+    
+    if (deduplicatedItems.length === 0) {
+      message.warning('该维度的章节内容已存在或无有效章节');
+      return;
+    }
+    
+    const hierarchicalItems = buildHierarchy(deduplicatedItems);
+    const finalItems = convertToTemplateFormat(hierarchicalItems);
+    
+    // 计算总章节数（包括所有层级）
+    const countAllItems = (items: ContentItem[]): number => {
+      let count = 0;
+      items.forEach(item => {
+        count += 1;
+        if (item.children && item.children.length > 0) {
+          count += countAllItems(item.children);
+        }
+      });
+      return count;
+    };
+    
+    const totalNewItems = countAllItems(finalItems);
+    
+    // 添加到模板内容项（只添加根级别项，子项通过children嵌套）
+    setTemplateContentItems(prev => [...prev, ...finalItems]);
+    
+    // 显示成功消息
+    message.success(`成功插入 ${finalItems.length} 个根级章节，共 ${totalNewItems} 个章节（包含所有层级）`);
   };
 
   // 根据key查找完整的维度数据
@@ -1393,6 +1928,271 @@ const ReportTemplateEdit: React.FC = () => {
         } as React.CSSProperties}
       />
     );
+  };
+
+  // 获取所有章节的ID（包括嵌套的子章节）
+  const getAllTemplateItemIds = (items: ContentItem[]): string[] => {
+    const ids: string[] = [];
+    
+    const collectIds = (itemList: ContentItem[]) => {
+      itemList.forEach(item => {
+        ids.push(item.id);
+        if (item.children && item.children.length > 0) {
+          collectIds(item.children);
+        }
+      });
+    };
+    
+    collectIds(items);
+    return ids;
+  };
+
+  // 渲染模板内容项（只渲染根级别项，子项由TemplateContentCard内部递归处理）
+  const renderTemplateContentItems = (items: ContentItem[]): React.ReactNode => {
+    console.log('渲染模板内容项，根级别项数量:', items.length);
+    return items.map((item) => {
+      console.log('渲染根级别项:', item.title, '子项数量:', item.children?.length || 0);
+      return (
+        <div key={item.id} style={{ marginBottom: '8px' }}>
+          <TemplateContentCard 
+            item={item} 
+            level={item.level}
+            onEdit={() => handleEditTemplateContent(item)}
+            onDelete={() => handleDeleteTemplateContent(item.id)}
+            onAddChild={() => handleAddChildContent(item.id)}
+          />
+        </div>
+      );
+    });
+  };
+
+  // 可拖拽的模板内容项组件
+  const TemplateContentCard: React.FC<{ 
+    item: ContentItem; 
+    level: number;
+    onEdit: () => void;
+    onDelete: () => void;
+    onAddChild: () => void;
+    index?: number;
+  }> = ({ item, level, onEdit, onDelete, onAddChild }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ 
+      id: item.id,
+      data: {
+        type: 'template-content-item',
+        item: item
+      }
+    });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    const levelColors = {
+      1: 'bg-blue-50 border-blue-200',
+      2: 'bg-green-50 border-green-200', 
+      3: 'bg-orange-50 border-orange-200'
+    };
+    
+    const levelTags = {
+      1: <Tag color="blue">一级章节</Tag>,
+      2: <Tag color="green">二级章节</Tag>,
+      3: <Tag color="orange">三级章节</Tag>
+    };
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={{
+          ...style,
+          touchAction: 'none',
+          ...(isDragging || (activeId && overId === item.id) ? { '--tw-ring-color': '#3388FF' } : {})
+        }}
+        {...attributes} 
+        {...listeners} 
+        className={cn(
+          "mb-3 p-4 border-2 rounded-lg transition-all cursor-grab active:cursor-grabbing",
+          levelColors[item.level],
+          isDragging ? "ring-2 shadow-lg" : "hover:shadow-md",
+          activeId && overId === item.id ? "ring-2" : ""
+        )}
+      >
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2 flex-1 select-none">
+            <DragOutlined className="hover:opacity-80" style={{ color: '#3388FF' }} />
+            {levelTags[item.level]}
+            <h4 className="font-medium text-[#223355] m-0">{item.title}</h4>
+          </div>
+          <div className="flex gap-1 ml-2">
+            {item.level < 3 && (
+              <Button
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddChildContent(item.id);
+                }}
+                title="新增子内容"
+              />
+            )}
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditTemplateContent(item);
+              }}
+              title="编辑"
+            />
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteTemplateContent(item.id);
+              }}
+              title="删除"
+            />
+          </div>
+        </div>
+        
+        <p className="text-sm text-gray-600 mb-2 line-clamp-2 select-none">
+          {item.content}
+        </p>
+        
+        {/* 渲染子内容 - 始终渲染子内容区域，即使没有子项，以便支持拖拽到此处 */}
+        <div className="ml-6 mt-3 space-y-2 min-h-[20px]">
+          {item.children && item.children.length > 0 ? (
+            item.children.map((child) => (
+              <TemplateContentCard 
+                key={child.id} 
+                item={child} 
+                level={child.level}
+                onEdit={() => handleEditTemplateContent(child)}
+                onDelete={() => handleDeleteTemplateContent(child.id)}
+                onAddChild={() => handleAddChildContent(child.id)}
+              />
+            ))
+          ) : (
+            // 空子内容区域，用于接收拖拽，但不显示提示文字
+            <div className="min-h-[20px]"></div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // 处理模板内容的相关函数
+  const handleAddContent = (level: number, parentId?: string) => {
+    const newItem: ContentItem = {
+      id: `content_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: `新${level === 1 ? '一' : level === 2 ? '二' : '三'}级章节`,
+      content: '',
+      level,
+      parentId,
+      workOrderEnabled: false,
+      children: [],
+      order: templateContentItems.length + 1
+    };
+
+    // 设置为新增模式，不立即添加到列表中
+    setEditingContent({ ...newItem, isNew: true, parentId });
+    setContentModalVisible(true);
+  };
+
+  // 添加子内容
+  const handleAddChildContent = (parentId: string) => {
+    // 找到父级项目，确定子级的level
+    const findParentLevel = (items: ContentItem[], id: string): number | null => {
+      for (const item of items) {
+        if (item.id === id) {
+          return item.level;
+        }
+        if (item.children) {
+          const found = findParentLevel(item.children, id);
+          if (found !== null) return found;
+        }
+      }
+      return null;
+    };
+
+    const parentLevel = findParentLevel(templateContentItems, parentId);
+    if (parentLevel && parentLevel < 3) {
+      const childLevel = (parentLevel + 1) as 1 | 2 | 3;
+      handleAddContent(childLevel, parentId);
+    }
+  };
+
+  const handleEditContent = (item: ContentItem) => {
+    setEditingContent(item);
+    setContentModalVisible(true);
+  };
+
+  const handleDeleteContent = (itemId: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除这个章节吗？删除后不可恢复。',
+      onOk: () => {
+        const removeFromItems = (items: ContentItem[]): ContentItem[] => {
+          return items.filter(item => {
+            if (item.id === itemId) {
+              return false;
+            }
+            if (item.children && item.children.length > 0) {
+              item.children = removeFromItems(item.children);
+            }
+            return true;
+          });
+        };
+        setTemplateContentItems(removeFromItems(templateContentItems));
+      }
+    });
+  };
+
+  const handleContentSave = (values: any) => {
+    const updateItems = (items: ContentItem[]): ContentItem[] => {
+      return items.map(item => {
+        if (item.id === editingContent?.id) {
+          return {
+            ...item,
+            title: values.title,
+            content: values.content,
+            workOrderEnabled: values.workOrderEnabled || false,
+            workOrderFilters: values.workOrderFilters || {
+              reportTimeStart: '',
+              reportTimeEnd: '',
+              appealSource: [],
+              region: [],
+              appealItem: [],
+              appealTags: []
+            }
+          };
+        }
+        if (item.children && item.children.length > 0) {
+          return {
+            ...item,
+            children: updateItems(item.children)
+          };
+        }
+        return item;
+      });
+    };
+
+    setTemplateContentItems(updateItems(templateContentItems));
+    setContentModalVisible(false);
+    setEditingContent(null);
   };
 
   // 在光标位置插入指标占位符
@@ -1693,81 +2493,57 @@ const ReportTemplateEdit: React.FC = () => {
               <>
                 {/* 左下：数据指标及报告维度 */}
                 <div className="flex flex-col border-r border-[#E9ECF2] bg-white" style={{ width: '260px', marginRight: '0px', paddingRight: '0px' }}>
-                   <div className="px-5 py-2 border-b border-[#E9ECF2]" style={{ paddingBottom: '0px', paddingLeft: '20px' }}>
-                     <Tabs
-                       activeKey={dimensionMetricTab}
-                       onChange={setDimensionMetricTab}
-                       items={dimensionMetricItems}
-                       size="small"
-                       tabBarGutter={24}
-                       tabBarStyle={{ marginBottom: 0, borderBottom: 'none', paddingLeft: '0px', paddingRight: '0px', marginLeft: '0px' }}
-                       className="dimension-metric-tabs"
-                     />
+                   <div className="px-5 py-2 border-b border-[#E9ECF2] flex items-center" style={{ paddingBottom: '8px', paddingLeft: '20px', height: '57px' }}>
+                     <h3 style={{ fontSize: '14px', fontWeight: 500, margin: 0, color: '#223355' }}>报告维度</h3>
                    </div>
                   <div className="flex-1 py-5 pr-5 pl-0 overflow-y-auto overflow-x-hidden" style={{ paddingTop: '20px', paddingBottom: '20px', paddingLeft: '20px' }}>
-                    {dimensionMetricTab === 'dimensions' ? (
-                      <div key="dimensions-content">
-                        {reportDimensions.length > 0 ? renderDimensionList() : (
-                          <div className="text-gray-500 text-center py-8">
-                            暂无报告维度
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div key="metrics-content">
-                        {dataMetrics.length > 0 ? renderMetricList() : (
-                          <div className="text-gray-500 text-center py-8">
-                            暂无数据指标
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <div key="dimensions-content">
+                      {reportDimensions.length > 0 ? renderDimensionList() : (
+                        <div className="text-gray-500 text-center py-8">
+                          暂无报告维度
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* 右下：报告正文 */}
-                <div className="flex-1 flex flex-col bg-white">
-                  <div className="px-5 border-b border-[#E9ECF2] flex items-center" style={{ height: '57px' }}>
-                    <h3 className="text-sm font-medium text-[#223355] m-0">模板编辑</h3>
-                  </div>
-                  <div className="flex-1 overflow-hidden" style={{ padding: '20px 20px 20px 20px', display: 'flex', flexDirection: 'column' }}>
-                        <div className="relative" style={{ height: 'calc(100vh - 400px)', minHeight: '300px', flex: 1 }}>
-                          <TextArea
-                            ref={editorRef}
-                            placeholder="onlyoffice没法调用，搞个编辑框示意一下"
-                            className="resize-none"
-                            style={{ height: '100%', minHeight: '300px' }}
-                            value={editorContent}
-                            onChange={(e) => {
-                              const newValue = e.target.value;
-                              setEditorContent(newValue);
-                              form.setFieldsValue({ 
-                                content_structure: {
-                                  rich_text_content: newValue
-                                }
-                              });
-                            }}
-                            onMouseUp={handleTextSelect}
-                            onBlur={handleClickOutside}
-                          />
-                        {contextMenuVisible && (
-                          <div 
-                            className="fixed bg-white border border-gray-200 rounded shadow-lg z-50 py-1"
-                            style={{ 
-                              left: contextMenuPosition.x, 
-                              top: contextMenuPosition.y,
-                              minWidth: '120px'
-                            }}
-                          >
-                            <div 
-                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                              onClick={handleGenerateDimension}
-                            >
-                              生成维度
-                            </div>
+                {/* 右下：模板编辑 - 模板内容区域 */}
+                <div className="flex-1 flex bg-white">
+                  {/* 模板内容区域 */}
+                  <div className="flex-1 flex flex-col">
+                    <div className="px-5 border-b border-[#E9ECF2] flex items-center justify-between" style={{ height: '57px' }}>
+                      <h3 className="text-sm font-medium text-[#223355] m-0">模板内容</h3>
+                      <Button 
+                        type="primary" 
+                        icon={<PlusOutlined />} 
+                        size="small"
+                        onClick={() => handleAddContent(1)}
+                      >
+                        新增一级章节
+                      </Button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto" style={{ padding: '16px 20px' }}>
+                      {/* 章节结构区域 */}
+                      <DndContext
+                        sensors={templateSensors}
+                        collisionDetection={closestCenter}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext items={getAllTemplateItemIds(templateContentItems)} strategy={verticalListSortingStrategy}>
+                          <div style={{ minHeight: '200px' }}>
+                            {templateContentItems.length > 0 ? (
+                              renderTemplateContentItems(templateContentItems)
+                            ) : (
+                              <div className="h-full flex items-center justify-center">
+                                <Empty description="暂无内容，请点击上方按钮新增一级内容" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                        </div>
+                        </SortableContext>
+                      </DndContext>
+                    </div>
                   </div>
                 </div>
               </>
@@ -1985,7 +2761,7 @@ const ReportTemplateEdit: React.FC = () => {
           previewVisible ? "w-96" : "w-12"
         )}>
           {previewVisible && (
-            <div className="px-5 py-4 border-b border-[#E9ECF2] flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-[#E9ECF2] flex items-center justify-between" style={{ height: '57px' }}>
               <h3 className="text-sm font-medium text-[#223355] m-0">预览</h3>
               <div className="flex gap-2">
                 <Button
@@ -2577,6 +3353,31 @@ const ReportTemplateEdit: React.FC = () => {
           </div>
         </div>
       </Modal>
+      
+      {/* 模板编辑弹窗 */}
+      <ContentEditModal
+        visible={templateEditModalVisible}
+        onCancel={handleTemplateEditCancel}
+        onSave={handleTemplateEditSave}
+        editData={currentTemplateEditItem}
+        mode={templateEditMode}
+        parent_id={templateEditParentId}
+        level={templateEditLevel}
+      />
+      
+      {/* 新的章节编辑弹窗 */}
+      <ContentEditModal
+        visible={contentModalVisible}
+        onCancel={() => {
+          setContentModalVisible(false);
+          setEditingContent(null);
+        }}
+        onSave={handleContentSave}
+        editData={editingContent}
+        mode={editingContent?.id?.startsWith('content_') ? 'edit' : 'add'}
+        parent_id={editingContent?.parentId}
+        level={editingContent?.level || 1}
+      />
     </div>
     </div>
   );
