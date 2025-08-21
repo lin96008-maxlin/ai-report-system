@@ -16,6 +16,7 @@ import ReportView from '@/pages/IntelligentReport/ReportView';
 import ReportTemplateManagement from '@/pages/IntelligentReport/ReportTemplateManagement';
 import ReportTemplateEdit from '@/pages/IntelligentReport/ReportTemplateEdit';
 import AnalysisRepository from '@/pages/IntelligentReport/AnalysisRepository';
+import JudgmentCauseLibrary from '@/pages/IntelligentReport/JudgmentCauseLibrary';
 import { useAppStore } from '@/store';
 
 const { Content } = Layout;
@@ -95,6 +96,7 @@ const AppContent: React.FC = () => {
               <Route path="/intelligent-report/dimension-management" element={<DimensionManagement />} />
               <Route path="/intelligent-report/dimension-detail/:id?" element={<DimensionDetail />} />
               <Route path="/intelligent-report/analysis-repository" element={<AnalysisRepository />} />
+              <Route path="/intelligent-report/judgment-cause-library" element={<JudgmentCauseLibrary />} />
               
               {/* 默认重定向和404页面 */}
                <Route path="/" element={<Navigate to="/intelligent-report/report-management" replace />} />

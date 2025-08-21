@@ -235,13 +235,11 @@ const ReportView: React.FC = () => {
               style={{fontSize: '16px'}}
               onClick={handleBack}
             />
-            <h2 className="font-medium text-[#223355] m-0" style={{fontSize: '18px'}}>查看报告</h2>
-            <Tag color={getStatusColor(report.status)}>{getStatusText(report.status)}</Tag>
+            <h2 className="font-medium text-[#223355] m-0" style={{fontSize: '18px'}}>查看报告详情</h2>
           </div>
           <div className="flex gap-2">
             <Button icon={<EditOutlined />} onClick={handleEdit}>编辑</Button>
-            <Button icon={<DownloadOutlined />} onClick={handleDownload}>下载</Button>
-            <Button icon={<PrinterOutlined />} onClick={handlePrint}>打印</Button>
+            <Button icon={<DownloadOutlined />} onClick={handleDownload}>导出</Button>
           </div>
         </div>
       </div>
@@ -249,9 +247,8 @@ const ReportView: React.FC = () => {
       {/* Tab导航 */}
       <div className="px-5 pt-3">
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab="报告预览" key="preview" />
-          <TabPane tab="基础信息" key="info" />
-          <TabPane tab="过滤条件" key="filters" />
+          <TabPane tab="报告详情" key="preview" />
+          <TabPane tab="基本信息" key="info" />
         </Tabs>
       </div>
 
@@ -292,82 +289,84 @@ const ReportView: React.FC = () => {
         )}
 
         {activeTab === 'info' && (
-          <Card title="基础信息" className="mb-4">
-            <Descriptions column={2} labelStyle={{ width: '120px', color: '#666' }}>
-              <Descriptions.Item label="报告标题">{report.name}</Descriptions.Item>
-              <Descriptions.Item label="报告目录">
-                {report.category_id === 'daily' ? '日报' :
-                 report.category_id === 'weekly' ? '周报' :
-                 report.category_id === 'monthly' ? '月报' :
-                 report.category_id === 'quarterly' ? '季报' :
-                 report.category_id === 'semiannual' ? '半年报' :
-                 report.category_id === 'annual' ? '年报' : report.category_id}
-              </Descriptions.Item>
-              <Descriptions.Item label="报告模板">投诉分析模板</Descriptions.Item>
-              <Descriptions.Item label="报告状态">
-                <Tag color={getStatusColor(report.status)}>{getStatusText(report.status)}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="生成进度">{report.progress}%</Descriptions.Item>
-              <Descriptions.Item label="创建时间">{report.created_at}</Descriptions.Item>
-              <Descriptions.Item label="创建人">{report.created_by}</Descriptions.Item>
-              <Descriptions.Item label="更新时间">{report.updated_at}</Descriptions.Item>
-              <Descriptions.Item label="更新人">{report.updated_by}</Descriptions.Item>
-              <Descriptions.Item label="报告描述" span={2}>
-                {report.description || '暂无描述'}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
+          <div>
+            <Card title="报告基础信息" className="mb-4">
+              <Descriptions column={2} labelStyle={{ width: '120px', color: '#666' }}>
+                <Descriptions.Item label="报告标题">{report.name}</Descriptions.Item>
+                <Descriptions.Item label="报告目录">
+                  {report.category_id === 'daily' ? '日报' :
+                   report.category_id === 'weekly' ? '周报' :
+                   report.category_id === 'monthly' ? '月报' :
+                   report.category_id === 'quarterly' ? '季报' :
+                   report.category_id === 'semiannual' ? '半年报' :
+                   report.category_id === 'annual' ? '年报' : report.category_id}
+                </Descriptions.Item>
+                <Descriptions.Item label="报告模板">投诉分析模板</Descriptions.Item>
+                <Descriptions.Item label="报告状态">
+                  <Tag color={getStatusColor(report.status)}>{getStatusText(report.status)}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="生成进度">{report.progress}%</Descriptions.Item>
+                <Descriptions.Item label="创建时间">{report.created_at}</Descriptions.Item>
+                <Descriptions.Item label="创建人">{report.created_by}</Descriptions.Item>
+                <Descriptions.Item label="更新时间">{report.updated_at}</Descriptions.Item>
+                <Descriptions.Item label="更新人">{report.updated_by}</Descriptions.Item>
+                <Descriptions.Item label="报告描述" span={2}>
+                  {report.description || '暂无描述'}
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+            
+            <Card title="过滤条件">
+              <Descriptions column={2} labelStyle={{ width: '120px', color: '#666' }}>
+                <Descriptions.Item label="上报时间">
+                  {report.filters.report_time_start} 至 {report.filters.report_time_end}
+                </Descriptions.Item>
+                <Descriptions.Item label="所属区域">
+                  {report.filters.region.length > 0 ? report.filters.region.join('、') : '全部'}
+                </Descriptions.Item>
+                <Descriptions.Item label="诉求来源">
+                  {report.filters.appeal_source.length > 0 ? report.filters.appeal_source.join('、') : '全部'}
+                </Descriptions.Item>
+                <Descriptions.Item label="诉求性质">
+                  {report.filters.appeal_nature.length > 0 ? report.filters.appeal_nature.join('、') : '全部'}
+                </Descriptions.Item>
+                <Descriptions.Item label="诉求状态">
+                  {report.filters.appeal_status.length > 0 ? report.filters.appeal_status.join('、') : '全部'}
+                </Descriptions.Item>
+                <Descriptions.Item label="满意评价">
+                  {report.filters.satisfaction_rating.length > 0 ? report.filters.satisfaction_rating.join('、') : '全部'}
+                </Descriptions.Item>
+                <Descriptions.Item label="处置部门">
+                  {report.filters.handling_department.length > 0 ? report.filters.handling_department.join('、') : '全部'}
+                </Descriptions.Item>
+                <Descriptions.Item label="诉求事项">
+                  {report.filters.appeal_item.length > 0 ? report.filters.appeal_item.join('、') : '全部'}
+                </Descriptions.Item>
+                <Descriptions.Item label="诉求标签">
+                  {report.filters.appeal_tags.length > 0 ? report.filters.appeal_tags.join('、') : '全部'}
+                </Descriptions.Item>
+                <Descriptions.Item label="诉求标题">
+                  {report.filters.appeal_title || '无'}
+                  {report.filters.appeal_title && (
+                    <span className="ml-2 text-[#666] text-xs">
+                      ({report.filters.appeal_title_match_type === 'all' ? '全部匹配' : '部分匹配'})
+                    </span>
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="诉求描述">
+                  {report.filters.appeal_description || '无'}
+                  {report.filters.appeal_description && (
+                    <span className="ml-2 text-[#666] text-xs">
+                      ({report.filters.appeal_description_match_type === 'all' ? '全部匹配' : '部分匹配'})
+                    </span>
+                  )}
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+          </div>
         )}
 
-        {activeTab === 'filters' && (
-          <Card title="过滤条件">
-            <Descriptions column={2} labelStyle={{ width: '120px', color: '#666' }}>
-              <Descriptions.Item label="上报时间">
-                {report.filters.report_time_start} 至 {report.filters.report_time_end}
-              </Descriptions.Item>
-              <Descriptions.Item label="所属区域">
-                {report.filters.region.length > 0 ? report.filters.region.join('、') : '全部'}
-              </Descriptions.Item>
-              <Descriptions.Item label="诉求来源">
-                {report.filters.appeal_source.length > 0 ? report.filters.appeal_source.join('、') : '全部'}
-              </Descriptions.Item>
-              <Descriptions.Item label="诉求性质">
-                {report.filters.appeal_nature.length > 0 ? report.filters.appeal_nature.join('、') : '全部'}
-              </Descriptions.Item>
-              <Descriptions.Item label="诉求状态">
-                {report.filters.appeal_status.length > 0 ? report.filters.appeal_status.join('、') : '全部'}
-              </Descriptions.Item>
-              <Descriptions.Item label="满意评价">
-                {report.filters.satisfaction_rating.length > 0 ? report.filters.satisfaction_rating.join('、') : '全部'}
-              </Descriptions.Item>
-              <Descriptions.Item label="处置部门">
-                {report.filters.handling_department.length > 0 ? report.filters.handling_department.join('、') : '全部'}
-              </Descriptions.Item>
-              <Descriptions.Item label="诉求事项">
-                {report.filters.appeal_item.length > 0 ? report.filters.appeal_item.join('、') : '全部'}
-              </Descriptions.Item>
-              <Descriptions.Item label="诉求标签">
-                {report.filters.appeal_tags.length > 0 ? report.filters.appeal_tags.join('、') : '全部'}
-              </Descriptions.Item>
-              <Descriptions.Item label="诉求标题">
-                {report.filters.appeal_title || '无'}
-                {report.filters.appeal_title && (
-                  <span className="ml-2 text-[#666] text-xs">
-                    ({report.filters.appeal_title_match_type === 'all' ? '全部匹配' : '部分匹配'})
-                  </span>
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="诉求描述">
-                {report.filters.appeal_description || '无'}
-                {report.filters.appeal_description && (
-                  <span className="ml-2 text-[#666] text-xs">
-                    ({report.filters.appeal_description_match_type === 'all' ? '全部匹配' : '部分匹配'})
-                  </span>
-                )}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
-        )}
+
       </div>
     </div>
   );

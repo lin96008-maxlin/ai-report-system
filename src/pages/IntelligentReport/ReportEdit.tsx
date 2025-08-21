@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Input, Select, DatePicker, Radio, TreeSelect, message, Tabs } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, Input, Select, TreeSelect, Tabs, Table, Modal, Form, DatePicker, Tag, Space, Dropdown, Menu, Radio, message } from 'antd';
+import { ArrowLeftOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Report, ReportTemplate, ReportCategory, ReportFilters } from '@/types';
 import dayjs from 'dayjs';
@@ -29,6 +29,17 @@ const ReportEdit: React.FC = () => {
   const { startReportGeneration } = useAppStore();
   const [activeTab, setActiveTab] = useState('basic');
   const [report, setReport] = useState<Report | null>(null);
+  const [reportContent, setReportContent] = useState('');
+  
+  // 关联工单相关状态
+  const [relatedTickets, setRelatedTickets] = useState<any[]>([]);
+  const [editFilterVisible, setEditFilterVisible] = useState(false);
+  const [editingTicket, setEditingTicket] = useState<any>(null);
+  const [editFilterForm] = Form.useForm();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const textAreaRef = useRef<any>(null);
   const [form, setForm] = useState<ReportEditForm>({
     category_id: '',
     name: '',
@@ -101,7 +112,17 @@ const ReportEdit: React.FC = () => {
     description: '本报告分析了2024年1月份的客户投诉情况，包括投诉来源、性质、处理情况等。',
     status: 'completed',
     progress: 100,
-    generated_content: '<h1>2024年1月客户投诉分析报告</h1><p>报告内容...</p>',
+    generated_content: `
+      <div style="padding: 20px; font-family: 'Microsoft YaHei', sans-serif;">
+        <h1 style="text-align: center; color: #223355; margin-bottom: 30px;">2024年1月客户投诉分析报告</h1>
+        
+        <h2 style="color: #223355; border-bottom: 2px solid #3388FF; padding-bottom: 5px;">一、报告概述</h2>
+        <p style="line-height: 1.8; margin-bottom: 20px;">本报告基于2024年1月1日至1月31日期间收集的客户投诉数据，通过多维度分析，深入了解客户投诉的分布特征、处理效率和满意度情况。</p>
+        
+        <h2 style="color: #223355; border-bottom: 2px solid #3388FF; padding-bottom: 5px;">二、数据统计</h2>
+        <p style="line-height: 1.8; margin-bottom: 20px;">本月共收到投诉1,245件，已办结1,156件，办结率达92.8%。</p>
+      </div>
+    `,
     filters: {
       report_time_start: '2024-01-01',
       report_time_end: '2024-01-31',
@@ -147,6 +168,73 @@ const ReportEdit: React.FC = () => {
         description: mockReport.description || '',
         filters: mockReport.filters
       });
+      
+      // 设置报告内容
+      setReportContent(`2024年1月民生诉求处理情况分析报告
+
+一、报告概述
+本报告基于2024年1月1日至1月31日期间收集的民生诉求数据，通过多维度分析，深入了解民生诉求的分布特征、处理效率和群众满意度情况，为改善民生服务质量提供数据支撑。
+
+二、诉求总体情况
+本月共收到民生诉求3,856件，已办结3,642件，办结率达94.5%。其中：
+- 环境卫生类诉求1,245件，占32.3%
+- 交通出行类诉求892件，占23.1%
+- 社区服务类诉求756件，占19.6%
+- 市政设施类诉求623件，占16.2%
+- 其他类诉求340件，占8.8%
+
+三、区域分布分析
+从区域分布来看，朝阳区诉求量最高，达到1,156件，占总量的30.0%；海淀区次之，为892件，占23.1%；丰台区678件，占17.6%；其他区域合计1,130件，占29.3%。
+
+四、处理时效分析
+平均处理时长为3.2个工作日，较上月缩短0.5天。其中：
+- 24小时内处理完成：2,145件，占55.6%
+- 3个工作日内处理完成：3,234件，占83.9%
+- 超过7个工作日处理：156件，占4.0%
+
+五、群众满意度
+通过电话回访和在线评价，群众满意度达到91.2%，较上月提升2.3个百分点。其中非常满意占67.8%，满意占23.4%，基本满意占8.8%。
+
+六、存在问题及建议
+1. 部分老旧小区基础设施维护不及时，建议加强日常巡查
+2. 噪音扰民类诉求处理周期较长，建议优化处理流程
+3. 群众对处理结果反馈机制需要进一步完善`);
+      
+      // 模拟关联工单数据
+      setRelatedTickets([
+        {
+          id: '1',
+          sectionName: '投诉统计分析',
+          sectionContent: '分析投诉数量、来源分布等统计数据',
+          sectionLevel: 1,
+          filterConditions: '投诉类型：服务质量',
+          remark: '重点关注服务质量相关投诉',
+          workOrderFilters: {
+            reportTimeStart: '2024-01-01',
+            reportTimeEnd: '2024-01-31',
+            appealSource: ['12345热线'],
+            region: ['朝阳区'],
+            appealItem: ['服务质量'],
+            appealTags: ['重复投诉']
+          }
+        },
+        {
+          id: '2',
+          sectionName: '区域分布分析',
+          sectionContent: '分析各区域投诉分布情况',
+          sectionLevel: 2,
+          filterConditions: '区域：全市',
+          remark: '按区域统计投诉数量',
+          workOrderFilters: {
+            reportTimeStart: '2024-01-01',
+            reportTimeEnd: '2024-01-31',
+            appealSource: [],
+            region: [],
+            appealItem: [],
+            appealTags: []
+          }
+        }
+      ]);
     } catch (error) {
       message.error('加载报告数据失败');
     } finally {
@@ -226,6 +314,50 @@ const ReportEdit: React.FC = () => {
     navigate('/report');
   };
 
+  const handleBatchDelete = () => {
+    setRelatedTickets(prev => prev.filter(item => !selectedRowKeys.includes(item.id)));
+    setSelectedRowKeys([]);
+    message.success('批量删除成功');
+  };
+
+  // 处理右键菜单
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+    setContextMenuVisible(true);
+  };
+
+  // 新增关联工单
+  const handleAddRelatedTicket = () => {
+    setContextMenuVisible(false);
+    editFilterForm.resetFields();
+    setEditingTicket(null);
+    setEditFilterVisible(true);
+  };
+
+  // 在光标位置插入文字
+  const insertTextAtCursor = (text: string) => {
+    if (textAreaRef.current) {
+      const textarea = textAreaRef.current.resizableTextArea.textArea;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentValue = reportContent;
+      const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+      setReportContent(newValue);
+      
+      // 设置光标位置到插入文字的末尾
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + text.length, start + text.length);
+      }, 0);
+    }
+  };
+
+  // 点击其他地方关闭右键菜单
+  const handleClickOutside = () => {
+    setContextMenuVisible(false);
+  };
+
   const categoryTreeData = categories.map(cat => ({
     value: cat.id,
     title: cat.name,
@@ -243,127 +375,197 @@ const ReportEdit: React.FC = () => {
   }
 
   return (
-    <div className="h-full bg-white rounded flex flex-col mx-5 mt-5" style={{ height: 'calc(100vh - 130px - 20px)', marginBottom: '20px' }}>
+    <div className="h-full bg-white rounded flex flex-col mx-5 mt-5" style={{ height: 'calc(100vh - 130px - 20px)', marginBottom: '20px', overflow: 'hidden' }}>
       {/* 页面标题栏 */}
       <div className="p-5 border-b border-[#E9ECF2]">
-        <div className="flex items-center gap-3">
-          <ArrowLeftOutlined 
-            className="text-[#223355] cursor-pointer hover:text-[#3388FF] transition-colors" 
-            style={{fontSize: '16px'}}
-            onClick={handleCancel}
-          />
-          <h2 className="font-medium text-[#223355] m-0" style={{fontSize: '18px'}}>编辑报告</h2>
-          {report && (
-            <span className="text-[#666] text-sm">({report.name})</span>
-          )}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ArrowLeftOutlined 
+              className="text-[#223355] cursor-pointer hover:text-[#3388FF] transition-colors" 
+              style={{fontSize: '16px'}}
+              onClick={handleCancel}
+            />
+            <h2 className="font-medium text-[#223355] m-0" style={{fontSize: '18px'}}>报告编辑</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              onClick={handleCancel}
+              className="border-[#E9ECF2] text-[#223355]"
+            >
+              取消
+            </Button>
+            <Button 
+               type="primary"
+               onClick={handleSubmit}
+               loading={loading}
+               className="bg-[#3388FF] border-[#3388FF]"
+             >
+               保存
+             </Button>
+          </div>
         </div>
       </div>
 
       {/* Tab导航 */}
       <div className="px-5 pt-3">
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab="基础信息" key="basic" />
-          <TabPane tab="过滤条件" key="filters" />
+          <TabPane tab="报告编辑" key="basic" />
+          <TabPane tab="关联工单" key="workorder" />
         </Tabs>
       </div>
 
       {/* 表单内容 */}
       <div className="flex-1 px-5 pb-5 overflow-auto">
-        <div className="max-w-4xl">
+          <div className="w-full">
           {activeTab === 'basic' && (
             <div>
               {/* 第一行 */}
               <div className="grid grid-cols-3 gap-6 mb-4">
-                <div>
-                  <label className="block text-[#223355] mb-2">报告目录 <span className="text-red-500">*</span></label>
+                <div className="flex items-center gap-3">
+                  <label className="text-[#223355] whitespace-nowrap">报告目录 <span className="text-red-500">*</span></label>
                   <TreeSelect
                     placeholder="请选择报告目录"
                     value={form.category_id}
                     onChange={(value) => handleFormChange('category_id', value)}
                     treeData={categoryTreeData}
-                    className="w-full"
+                    className="flex-1"
                     dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
                   />
                 </div>
-                <div>
-                  <label className="block text-[#223355] mb-2">报告标题 <span className="text-red-500">*</span></label>
+                <div className="flex items-center gap-3">
+                  <label className="text-[#223355] whitespace-nowrap">报告标题 <span className="text-red-500">*</span></label>
                   <Input
                     placeholder="请输入报告标题"
                     value={form.name}
                     onChange={(e) => handleFormChange('name', e.target.value)}
                     maxLength={100}
+                    className="flex-1"
                   />
                 </div>
-                <div>
-                  <label className="block text-[#223355] mb-2">报告模板 <span className="text-red-500">*</span></label>
-                  <Select
-                    placeholder="请选择报告模板"
-                    value={form.template_id}
-                    onChange={(value) => handleFormChange('template_id', value)}
-                    className="w-full"
-                  >
-                    {templates.map(template => (
-                      <Option key={template.id} value={template.id}>
-                        {template.name} ({template.type})
-                      </Option>
-                    ))}
-                  </Select>
+                <div className="flex items-center gap-3">
+                  <label className="text-[#223355] whitespace-nowrap">报告描述</label>
+                  <Input
+                    placeholder="请输入报告描述"
+                    value={form.description}
+                    onChange={(e) => handleFormChange('description', e.target.value)}
+                    maxLength={500}
+                    className="flex-1"
+                  />
                 </div>
               </div>
               
-              {/* 第二行 */}
-              <div>
-                <label className="block text-[#223355] mb-2">报告描述</label>
-                <TextArea
-                  placeholder="请输入报告描述"
-                  value={form.description}
-                  onChange={(e) => handleFormChange('description', e.target.value)}
-                  rows={4}
-                  maxLength={500}
-                />
-              </div>
-
-              {/* 报告信息展示 */}
-              {report && (
-                <div className="mt-6 p-4 bg-[#F8F9FA] rounded">
-                  <h4 className="text-[#223355] font-medium mb-3">报告信息</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-[#666]">创建时间：</span>
-                      <span className="text-[#223355]">{report.created_at}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#666]">创建人：</span>
-                      <span className="text-[#223355]">{report.created_by}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#666]">更新时间：</span>
-                      <span className="text-[#223355]">{report.updated_at}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#666]">更新人：</span>
-                      <span className="text-[#223355]">{report.updated_by}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#666]">报告状态：</span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        report.status === 'completed' ? 'bg-green-100 text-green-600' :
-                        report.status === 'generating' ? 'bg-blue-100 text-blue-600' :
-                        report.status === 'failed' ? 'bg-red-100 text-red-600' :
-                        'bg-gray-100 text-gray-600'
-                      }`}>
-                        {report.status === 'completed' ? '已完成' :
-                         report.status === 'generating' ? '生成中' :
-                         report.status === 'failed' ? '生成失败' : '草稿'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[#666]">生成进度：</span>
-                      <span className="text-[#223355]">{report.progress}%</span>
+              {/* 报告内容编辑区域 */}
+              <div className="mb-4 -mx-5">
+                <div className="px-5">
+                  <label className="block text-[#223355] mb-2">报告内容</label>
+                </div>
+                <div className="px-5">
+                  <div className="border border-[#E9ECF2] rounded">
+                    <div onContextMenu={handleContextMenu} onClick={handleClickOutside}>
+                      <TextArea
+                        ref={textAreaRef}
+                        placeholder="请输入或编辑报告内容..."
+                        value={reportContent}
+                        onChange={(e) => setReportContent(e.target.value)}
+                        className="border-0"
+                        style={{ 
+                          height: 'calc(100vh - 400px)',
+                          fontSize: '14px',
+                          lineHeight: '1.6',
+                          resize: 'none'
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+
+
+            </div>
+          )}
+
+          {activeTab === 'workorder' && (
+            <div className="-mx-5">
+              <div className="px-5 mb-4 flex justify-start items-center">
+                <Button 
+                  danger
+                  disabled={selectedRowKeys.length === 0}
+                  onClick={handleBatchDelete}
+                >
+                  批量删除
+                </Button>
+              </div>
+              
+              <div className="px-5">
+                <Table
+                  dataSource={relatedTickets}
+                  rowKey="id"
+                  pagination={false}
+                  rowSelection={{
+                    selectedRowKeys,
+                    onChange: setSelectedRowKeys
+                  }}
+                  columns={[
+                      {
+                        title: '序号',
+                        dataIndex: 'index',
+                        key: 'index',
+                        width: 60,
+                        render: (_, __, index) => index + 1,
+                      },
+                      {
+                        title: '章节名称',
+                        dataIndex: 'sectionName',
+                        key: 'sectionName',
+                        width: 200,
+                      },
+
+                    {
+                      title: '筛选条件',
+                      dataIndex: 'filterConditions',
+                      key: 'filterConditions',
+                      width: 200
+                    },
+                    {
+                      title: '备注',
+                      dataIndex: 'remark',
+                      key: 'remark',
+                      width: 150
+                    },
+                    {
+                      title: '操作',
+                      key: 'action',
+                      width: 120,
+                      render: (_, record) => (
+                        <Space>
+                          <Button
+                            type="link"
+                            size="small"
+                            icon={<EditOutlined />}
+                            onClick={() => {
+                              setEditingTicket(record);
+                              setEditFilterVisible(true);
+                            }}
+                          >
+                            编辑
+                          </Button>
+                          <Button
+                            type="link"
+                            size="small"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => {
+                              setRelatedTickets(prev => prev.filter(item => item.id !== record.id));
+                            }}
+                          >
+                            删除
+                          </Button>
+                        </Space>
+                      )
+                    }
+                  ]}
+                />
+              </div>
             </div>
           )}
 
@@ -567,13 +769,185 @@ const ReportEdit: React.FC = () => {
         </div>
       </div>
 
-      {/* 底部操作栏 */}
-      <div className="p-5 border-t border-[#E9ECF2] flex justify-end gap-3">
-        <Button onClick={handleCancel}>取消</Button>
-        <Button type="primary" loading={loading} onClick={handleSubmit}>
-          保存修改
-        </Button>
-      </div>
+
+
+      {/* 编辑工单筛选弹窗 */}
+      <Modal
+        title={
+            <div style={{ paddingBottom: '20px', borderBottom: '1px solid #f0f0f0' }}>
+              编辑
+            </div>
+          }
+        open={editFilterVisible}
+        onCancel={() => {
+          setEditFilterVisible(false);
+          setEditingTicket(null);
+          editFilterForm.resetFields();
+        }}
+        width={800}
+        centered
+        styles={{
+          body: { padding: '20px', minHeight: '400px' },
+          mask: { backgroundColor: 'rgba(0, 0, 0, 0.45)' }
+        }}
+        footer={[
+          <Button key="cancel" onClick={() => {
+            setEditFilterVisible(false);
+            setEditingTicket(null);
+            editFilterForm.resetFields();
+          }}>取消</Button>,
+          <Button key="submit" type="primary" onClick={() => {
+            editFilterForm.validateFields().then(values => {
+              if (editingTicket) {
+                // 编辑模式
+                setRelatedTickets(prev => prev.map(item => 
+                  item.id === editingTicket.id ? { ...item, ...values } : item
+                ));
+                message.success('关联工单编辑成功！');
+              } else {
+                 // 新增模式
+                 const newTicket = {
+                   id: Date.now().toString(),
+                   ...values
+                 };
+                 setRelatedTickets(prev => [...prev, newTicket]);
+                 message.success('关联工单添加成功！');
+                 
+                 // 在光标位置插入文字
+                 insertTextAtCursor('查看关联工单（点击超链反查工单列表）');
+               }
+              setEditFilterVisible(false);
+              setEditingTicket(null);
+              editFilterForm.resetFields();
+            });
+          }}>确定</Button>,
+        ]}
+      >
+        <Form form={editFilterForm} layout="vertical">
+          <Form.Item
+            name="sectionName"
+            label="章节名称"
+            rules={[{ required: true, message: '请输入章节名称' }]}
+          >
+            <Input placeholder="请输入章节名称" />
+          </Form.Item>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              name="reportTime"
+              label="报告时间"
+            >
+              <RangePicker className="w-full" />
+            </Form.Item>
+            
+            <Form.Item
+              name="appealSource"
+              label="诉求来源"
+            >
+              <Select placeholder="请选择诉求来源" allowClear>
+                <Option value="12345热线">12345热线</Option>
+                <Option value="网上信访">网上信访</Option>
+                <Option value="现场投诉">现场投诉</Option>
+                <Option value="媒体曝光">媒体曝光</Option>
+                <Option value="微信">微信</Option>
+                <Option value="电话">电话</Option>
+              </Select>
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              name="belongArea"
+              label="所属区域"
+            >
+              <Select placeholder="请选择所属区域" allowClear>
+                <Option value="朝阳区">朝阳区</Option>
+                <Option value="海淀区">海淀区</Option>
+                <Option value="丰台区">丰台区</Option>
+                <Option value="西城区">西城区</Option>
+                <Option value="东城区">东城区</Option>
+                <Option value="石景山区">石景山区</Option>
+              </Select>
+            </Form.Item>
+            
+            <Form.Item
+              name="appealMatter"
+              label="诉求事项"
+            >
+              <Select placeholder="请选择诉求事项" allowClear>
+                <Option value="环境卫生">环境卫生</Option>
+                <Option value="噪音扰民">噪音扰民</Option>
+                <Option value="服务质量">服务质量</Option>
+                <Option value="环境污染">环境污染</Option>
+                <Option value="交通管理">交通管理</Option>
+                <Option value="市政设施">市政设施</Option>
+              </Select>
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              name="appealTags"
+              label="诉求标签"
+            >
+              <Select 
+                mode="multiple" 
+                placeholder="请选择诉求标签" 
+                allowClear
+              >
+                <Option value="重复投诉">重复投诉</Option>
+                <Option value="紧急处理">紧急处理</Option>
+                <Option value="媒体关注">媒体关注</Option>
+                <Option value="群众反映">群众反映</Option>
+                <Option value="重点关注">重点关注</Option>
+              </Select>
+            </Form.Item>
+            
+            <Form.Item
+              name="filterConditions"
+              label="其他筛选条件"
+            >
+              <Input placeholder="请输入其他筛选条件" />
+            </Form.Item>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* 右键菜单 */}
+      {contextMenuVisible && (
+        <div
+          style={{
+            position: 'fixed',
+            left: contextMenuPosition.x,
+            top: contextMenuPosition.y,
+            zIndex: 1000,
+            backgroundColor: 'white',
+            border: '1px solid #d9d9d9',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            padding: '4px 0',
+            minWidth: '120px'
+          }}
+        >
+          <div
+            onClick={handleAddRelatedTicket}
+            style={{
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#262626'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f5f5f5';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            新增关联工单
+          </div>
+        </div>
+      )}
     </div>
   );
 };
