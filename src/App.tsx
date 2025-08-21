@@ -89,6 +89,9 @@ const AppContent: React.FC = () => {
               <Route path="/intelligent-report/report-template-management" element={<ReportTemplateManagement />} />
               <Route path="/intelligent-report/report-template-edit/:id?" element={<ReportTemplateEdit />} />
               <Route path="/intelligent-report/report-template-edit-simple/:id?" element={<ReportTemplateEdit />} />
+              <Route path="/intelligent-report/report-generate" element={<ReportGenerate />} />
+              <Route path="/intelligent-report/report/edit/:id" element={<ReportEdit />} />
+              <Route path="/intelligent-report/report/view/:id" element={<ReportView />} />
               <Route path="/intelligent-report/dimension-management" element={<DimensionManagement />} />
               <Route path="/intelligent-report/dimension-detail/:id?" element={<DimensionDetail />} />
               <Route path="/intelligent-report/analysis-repository" element={<AnalysisRepository />} />

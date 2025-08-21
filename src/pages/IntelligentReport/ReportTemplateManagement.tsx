@@ -259,6 +259,20 @@ const ReportTemplateManagement: React.FC = () => {
       // 模拟发布API
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      // 获取当前localStorage中的模板数据
+      const savedTemplates = localStorage.getItem('reportTemplates');
+      let allTemplates = savedTemplates ? JSON.parse(savedTemplates) : [];
+      
+      // 更新localStorage中的模板发布状态
+      allTemplates = allTemplates.map((template: ReportTemplate) => 
+        template.id === record.id 
+          ? { ...template, is_published: true }
+          : template
+      );
+      
+      // 保存到localStorage
+      localStorage.setItem('reportTemplates', JSON.stringify(allTemplates));
+      
       // 更新本地状态
       setTemplates(prev => prev.map(template => 
         template.id === record.id 
@@ -277,6 +291,20 @@ const ReportTemplateManagement: React.FC = () => {
     try {
       // 模拟取消发布API
       await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 获取当前localStorage中的模板数据
+      const savedTemplates = localStorage.getItem('reportTemplates');
+      let allTemplates = savedTemplates ? JSON.parse(savedTemplates) : [];
+      
+      // 更新localStorage中的模板发布状态
+      allTemplates = allTemplates.map((template: ReportTemplate) => 
+        template.id === record.id 
+          ? { ...template, is_published: false }
+          : template
+      );
+      
+      // 保存到localStorage
+      localStorage.setItem('reportTemplates', JSON.stringify(allTemplates));
       
       // 更新本地状态
       setTemplates(prev => prev.map(template => 

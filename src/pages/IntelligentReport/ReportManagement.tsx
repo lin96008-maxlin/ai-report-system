@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Card, Input, Button, DatePicker, Checkbox, message, Modal, Tree, Empty, Pagination, Select, Progress } from 'antd';
 import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, ExportOutlined, FolderOutlined, FileTextOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -18,35 +18,44 @@ const cardStyles = `
     transition: all 0.2s ease;
     background: #fff;
     position: relative;
+    contain: layout style paint; /* CSS containment 优化渲染性能 */
+    will-change: auto; /* 避免不必要的合成层 */
   }
-  
+
   .report-card:hover {
+    transform: translateZ(0); /* 使用transform代替box-shadow减少重绘 */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
-  
+
   .report-card .ant-card-body {
     padding: 16px;
+    contain: layout; /* 限制布局影响范围 */
   }
-  
+
   .report-card .ant-card-actions {
     background: transparent;
     border-top: 1px solid #f0f0f0;
     text-align: center;
     padding: 8px 0;
   }
-  
+
   .report-card .ant-card-actions > li {
     margin: 0 8px;
   }
-  
+
   .report-card .ant-card-actions .anticon {
     font-size: 16px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease; /* 只对transform做动画 */
   }
-  
+
   .report-card .ant-card-actions .anticon:hover {
     transform: scale(1.1);
+  }
+
+  /* 进度条容器优化 */
+  .ant-progress {
+    contain: layout style; /* 限制进度条更新的影响范围 */
   }
 `;
 
@@ -65,6 +74,168 @@ import ReportGenerationProgress from '@/components/ReportGenerationProgress';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+
+// 优化的报告卡片组件，使用memo避免不必要的重新渲染
+const ReportCard = memo(({ 
+  report, 
+  index, 
+  pagination, 
+  selectedReports, 
+  handleSelectReport, 
+  handleViewReport, 
+  handleEditReport, 
+  handleDeleteReport,
+  getCategoryName,
+  formatDate 
+}: {
+  report: ExtendedReport;
+  index: number;
+  pagination: { current: number; pageSize: number; total: number };
+  selectedReports: string[];
+  handleSelectReport: (reportId: string, checked: boolean) => void;
+  handleViewReport: (report: ExtendedReport) => void;
+  handleEditReport: (report: ExtendedReport) => void;
+  handleDeleteReport: (reportId: string) => void;
+  getCategoryName: (categoryId: string) => string;
+  formatDate: (dateStr: string) => string;
+}) => {
+  return (
+    <Card
+      key={report.id}
+      className={cn(
+        "report-card cursor-pointer hover:shadow-md transition-shadow relative",
+        selectedReports.includes(report.id) && "border-2"
+      )}
+      style={selectedReports.includes(report.id) ? { borderColor: '#3388FF' } : {}}
+      onClick={() => handleViewReport(report)}
+      actions={[
+        <EditOutlined 
+          key="edit" 
+          style={{ 
+            color: report.report_status === 'generating' ? '#d9d9d9' : '#3388FF',
+            cursor: report.report_status === 'generating' ? 'not-allowed' : 'pointer'
+          }} 
+          onClick={(e) => {
+            e.stopPropagation();
+            if (report.report_status !== 'generating') {
+              handleEditReport(report);
+            }
+          }} 
+        />,
+        <ExportOutlined 
+          key="export" 
+          style={{ 
+            color: report.report_status === 'generating' ? '#d9d9d9' : '#52C41A',
+            cursor: report.report_status === 'generating' ? 'not-allowed' : 'pointer'
+          }} 
+          onClick={(e) => {
+            e.stopPropagation();
+            if (report.report_status !== 'generating') {
+              message.success('正在导出报告...');
+            }
+          }} 
+        />,
+        <DeleteOutlined key="delete" style={{ color: '#FF4D4F' }} onClick={(e) => {
+          e.stopPropagation();
+          handleDeleteReport(report.id);
+        }} />
+      ]}
+    >
+      <div className="relative">
+        {/* 第一行：复选框、序号、报告标题 - 垂直居中 */}
+        <div className="flex items-center gap-3 mb-3">
+          {/* 选择框 - 增大点击区域 */}
+          <div 
+            className="flex items-center justify-center p-2 -m-2 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSelectReport(report.id, !selectedReports.includes(report.id));
+            }}
+          >
+            <Checkbox
+              checked={selectedReports.includes(report.id)}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleSelectReport(report.id, e.target.checked);
+              }}
+            />
+          </div>
+          
+          {/* 序号 */}
+          <div className="w-6 h-6 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-medium flex-shrink-0">
+            {(pagination.current - 1) * pagination.pageSize + index + 1}
+          </div>
+          
+          {/* 报告标题 */}
+          <h3 className="text-base font-medium text-[#24292F] flex-1">
+            {report.title || report.name}
+          </h3>
+        </div>
+        
+        {/* 第二行：报告描述 */}
+        <div className="mb-3">
+          <p className="text-sm text-[#656D76] line-clamp-2">
+            {report.description || '暂无描述'}
+          </p>
+        </div>
+        
+        {/* 第三行：分类、模板、状态 */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-4 text-xs text-[#656D76]">
+            <span>分类：{report.category_name}</span>
+            <span>模板：{report.template_name}</span>
+          </div>
+          
+          {/* 状态标签 */}
+          <div className="flex items-center gap-2">
+            {report.report_status === 'generating' ? (
+              <>
+                <LoadingOutlined className="text-blue-500" />
+                <span className="text-xs text-blue-500 font-medium">生成中</span>
+              </>
+            ) : (
+              <span className="text-xs text-green-500 font-medium">已生成</span>
+            )}
+          </div>
+        </div>
+        
+        {/* 第四行：创建信息 */}
+        <div className="flex items-center justify-between text-xs text-[#8C959F]">
+          <span>创建人：{report.created_by}</span>
+          <span>创建时间：{dayjs(report.created_at).format('YYYY-MM-DD HH:mm')}</span>
+        </div>
+        
+        {/* 进度条 - 绝对定位贴近卡片下边缘，不占用高度 */}
+        {report.report_status === 'generating' && (
+          <div className="absolute bottom-0 left-0 right-0" style={{ height: '2px', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
+            <div 
+              className="h-full bg-blue-500 transition-all duration-300 ease-out"
+              style={{ 
+                width: `${report.progress || 0}%`,
+                backgroundColor: '#3388FF'
+              }}
+            />
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}, (prevProps, nextProps) => {
+  // 优化比较函数，只比较影响渲染的数据，忽略回调函数引用
+  return (
+    prevProps.report.id === nextProps.report.id &&
+    prevProps.report.progress === nextProps.report.progress &&
+    prevProps.report.status === nextProps.report.status &&
+    prevProps.report.report_status === nextProps.report.report_status &&
+    prevProps.report.name === nextProps.report.name &&
+    prevProps.report.title === nextProps.report.title &&
+    prevProps.selectedReports.includes(prevProps.report.id) === nextProps.selectedReports.includes(nextProps.report.id) &&
+    prevProps.index === nextProps.index
+    // 移除回调函数比较，因为它们的引用变化不应该触发重渲染
+  );
+});
+
+ReportCard.displayName = 'ReportCard';
 
 const ReportManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -106,10 +277,10 @@ const ReportManagement: React.FC = () => {
   ];
 
   // 获取分类名称的辅助函数
-  const getCategoryName = (categoryId: string) => {
+  const getCategoryName = useCallback((categoryId: string) => {
     const category = categories.find(cat => cat.id === categoryId);
     return category?.name || '未知分类';
-  };
+  }, [categories]);
 
   const mockReports: ExtendedReport[] = [
     {
@@ -197,6 +368,19 @@ const ReportManagement: React.FC = () => {
       localStorage.setItem('reportCategories', JSON.stringify(mockCategories));
     }
     loadReports();
+    
+    // 监听localStorage变化，实时更新报告列表
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'reports') {
+        loadReports();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [selectedCategoryId, queryParams, pagination.current]);
 
   // 监听reportCategories变化，同步到categories
@@ -204,13 +388,30 @@ const ReportManagement: React.FC = () => {
     setCategories(reportCategories);
   }, [reportCategories]);
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true);
     try {
       // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      let filteredReports = mockReports;
+      // 从localStorage获取报告数据，如果没有则使用mockReports
+      const storedReports = localStorage.getItem('reports');
+      let allReports = storedReports ? JSON.parse(storedReports) : [];
+      
+      // 如果localStorage中没有数据，使用mockReports作为初始数据
+      if (allReports.length === 0) {
+        allReports = [...mockReports];
+        localStorage.setItem('reports', JSON.stringify(allReports));
+      }
+      
+      // 确保从localStorage加载的数据包含progress和report_status字段，但保留现有状态
+      allReports = allReports.map((report: any) => ({
+        ...report,
+        progress: report.progress !== undefined ? report.progress : 0,
+        report_status: report.report_status || report.status || 'generated'
+      }));
+      
+      let filteredReports = allReports;
       
       // 按目录过滤
       if (selectedCategoryId !== 'all') {
@@ -250,6 +451,7 @@ const ReportManagement: React.FC = () => {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
       
+      // 简化状态更新逻辑，避免复杂的JSON比较
       setReports(filteredReports);
       setPagination(prev => ({ ...prev, total: filteredReports.length }));
     } catch (error) {
@@ -257,7 +459,7 @@ const ReportManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategoryId, queryParams, pagination.current]);
 
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, current: 1 }));
@@ -271,13 +473,13 @@ const ReportManagement: React.FC = () => {
     setPagination(prev => ({ ...prev, current: 1 }));
   };
 
-  const handleSelectReport = (reportId: string, checked: boolean) => {
+  const handleSelectReport = useCallback((reportId: string, checked: boolean) => {
     if (checked) {
       setSelectedReports(prev => [...prev, reportId]);
     } else {
       setSelectedReports(prev => prev.filter(id => id !== reportId));
     }
-  };
+  }, []);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -300,9 +502,20 @@ const ReportManagement: React.FC = () => {
         try {
           // 模拟API调用
           await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // 从当前reports状态中删除选中的报告
+          setReports(prev => prev.filter(report => !selectedReports.includes(report.id)));
+          
+          // 同步更新localStorage中的报告数据
+          const storedReports = localStorage.getItem('reports');
+          if (storedReports) {
+            const reportsData = JSON.parse(storedReports);
+            const updatedReports = reportsData.filter((report: any) => !selectedReports.includes(report.id));
+            localStorage.setItem('reports', JSON.stringify(updatedReports));
+          }
+          
           message.success('删除成功');
           setSelectedReports([]);
-          loadReports();
         } catch (error) {
           message.error('删除失败');
         }
@@ -345,6 +558,40 @@ const ReportManagement: React.FC = () => {
     }
   };
 
+
+  
+  // 优化的进度更新函数，减少不必要的重渲染
+  const debouncedUpdateProgress = useCallback((reportId: string, newProgress: number) => {
+    setReports(prev => {
+      const reportIndex = prev.findIndex(report => report.id === reportId);
+      if (reportIndex === -1) return prev;
+      
+      const currentReport = prev[reportIndex];
+      if (currentReport.progress === newProgress) return prev;
+      
+      // 使用map而不是展开运算符，只更新目标报告
+      const updatedReports = prev.map((report, index) => {
+        if (index !== reportIndex) return report; // 保持原对象引用
+        
+        return {
+          ...report,
+          progress: newProgress,
+          ...(newProgress >= 100 && {
+            status: 'generated',
+            report_status: 'generated'
+          })
+        };
+      });
+      
+      // 延迟更新localStorage，避免频繁IO操作
+      setTimeout(() => {
+        localStorage.setItem('reports', JSON.stringify(updatedReports));
+      }, 100);
+      
+      return updatedReports;
+    });
+  }, []);
+
   // 模拟生成报告提交后的状态管理
   const handleReportSubmit = (reportData: any) => {
     // 创建新的生成中报告记录
@@ -372,29 +619,38 @@ const ReportManagement: React.FC = () => {
     // 添加到报告列表
     setReports(prev => [newReport, ...prev]);
 
-    // 模拟进度条加载
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += 20;
-      setReports(prev => prev.map(report => 
-        report.id === newReport.id 
-          ? { ...report, progress }
-          : report
-      ));
-
-      if (progress >= 100) {
-        clearInterval(progressInterval);
-        // 5秒后状态变更为已生成
-        setTimeout(() => {
-          setReports(prev => prev.map(report => 
-            report.id === newReport.id 
-              ? { ...report, status: 'completed', report_status: 'generated' as const, progress: undefined }
-              : report
-          ));
-          message.success('报告生成完成');
-        }, 1000); // 进度条完成后1秒变更状态
+    // 同步更新localStorage
+    const updateLocalStorage = () => {
+      const storedReports = localStorage.getItem('reports');
+      if (storedReports) {
+        const reportsData = JSON.parse(storedReports);
+        const updatedReports = [newReport, ...reportsData];
+        localStorage.setItem('reports', JSON.stringify(updatedReports));
+      } else {
+        localStorage.setItem('reports', JSON.stringify([newReport]));
       }
-    }, 1000); // 每秒增加20%进度
+    };
+    updateLocalStorage();
+
+    // 模拟进度条加载 - 使用更少的更新点，减少渲染频率
+    let progress = 0;
+    const progressSteps = [25, 75, 100]; // 进一步减少进度节点
+    let stepIndex = 0;
+    
+    const progressInterval = setInterval(() => {
+      if (stepIndex < progressSteps.length) {
+        progress = progressSteps[stepIndex];
+        stepIndex++;
+        
+        // 使用防抖更新函数
+        debouncedUpdateProgress(newReport.id, progress);
+
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+          message.success('报告生成完成');
+        }
+      }
+    }, 2500); // 增加间隔到2.5秒，进一步减少更新频率
   };
 
   // 模拟进度更新
@@ -457,6 +713,9 @@ const ReportManagement: React.FC = () => {
           
           setSelectedReports([]);
           message.success('批量生成任务已启动');
+          
+          // 跳转到报告生成页面
+          navigate('/intelligent-report/report-generate');
         } catch (error) {
           message.error('批量生成失败');
         } finally {
@@ -468,7 +727,7 @@ const ReportManagement: React.FC = () => {
 
 
 
-  const handleDeleteReport = (reportId: string) => {
+  const handleDeleteReport = useCallback((reportId: string) => {
     Modal.confirm({
       title: '确认删除',
       content: '确定要删除这个报告吗？',
@@ -476,30 +735,41 @@ const ReportManagement: React.FC = () => {
         try {
           // 模拟API调用
           await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // 从当前reports状态中删除
+          setReports(prev => prev.filter(report => report.id !== reportId));
+          
+          // 同步更新localStorage中的报告数据
+          const storedReports = localStorage.getItem('reports');
+          if (storedReports) {
+            const reportsData = JSON.parse(storedReports);
+            const updatedReports = reportsData.filter((report: any) => report.id !== reportId);
+            localStorage.setItem('reports', JSON.stringify(updatedReports));
+          }
+          
           message.success('删除成功');
-          loadReports();
         } catch (error) {
           message.error('删除失败');
         }
       }
     });
-  };
+  }, []);
 
-  const handleEditReport = (report: ExtendedReport) => {
+  const handleEditReport = useCallback((report: ExtendedReport) => {
     if (report.report_status === 'generating') {
       message.warning('报告生成中，请稍等');
       return;
     }
     navigate(`/intelligent-report/report/edit/${report.id}`);
-  };
+  }, [navigate]);
 
-  const handleViewReport = (report: ExtendedReport) => {
+  const handleViewReport = useCallback((report: ExtendedReport) => {
     if (report.report_status === 'generating') {
       message.warning('报告生成中，请稍等');
       return;
     }
     navigate(`/intelligent-report/report/view/${report.id}`);
-  };
+  }, [navigate]);
 
   // 构建树形数据（完全照搬维度管理）
   const buildChildren = (parentId: string | null): TreeDataNode[] => {
@@ -768,9 +1038,9 @@ const ReportManagement: React.FC = () => {
     setCategoryModalVisible(false);
   };
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     return dayjs(dateStr).format('YYYY-MM-DD HH:mm');
-  };
+  }, []);
 
   return (
     <>
@@ -1063,7 +1333,7 @@ const ReportManagement: React.FC = () => {
             <Button 
                 type="primary" 
                 icon={<PlusOutlined />}
-                onClick={() => navigate('/intelligent-report/generate')}
+                onClick={() => navigate('/intelligent-report/report-generate')}
               >
                 生成报告
               </Button>
@@ -1095,148 +1365,19 @@ const ReportManagement: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {reports.map((report, index) => (
-                <Card
+                <ReportCard
                   key={report.id}
-                  className={cn(
-                    "report-card cursor-pointer hover:shadow-md transition-shadow relative",
-                    selectedReports.includes(report.id) && "border-2"
-                  )}
-                  style={selectedReports.includes(report.id) ? { borderColor: '#3388FF' } : {}}
-                  onClick={() => handleViewReport(report)}
-                  actions={[
-                    <EditOutlined 
-                      key="edit" 
-                      style={{ 
-                        color: report.report_status === 'generating' ? '#d9d9d9' : '#3388FF',
-                        cursor: report.report_status === 'generating' ? 'not-allowed' : 'pointer'
-                      }} 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (report.report_status !== 'generating') {
-                          handleEditReport(report);
-                        }
-                      }} 
-                    />,
-                    <ExportOutlined 
-                      key="export" 
-                      style={{ 
-                        color: report.report_status === 'generating' ? '#d9d9d9' : '#52C41A',
-                        cursor: report.report_status === 'generating' ? 'not-allowed' : 'pointer'
-                      }} 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (report.report_status !== 'generating') {
-                          message.success('正在导出报告...');
-                        }
-                      }} 
-                    />,
-                    <DeleteOutlined key="delete" style={{ color: '#FF4D4F' }} onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteReport(report.id);
-                    }} />
-                  ]}
-                >
-
-                  
-                  {/* 第一行：复选框、序号、报告标题 - 垂直居中 */}
-                  <div className="flex items-center gap-3 mb-3">
-                    {/* 选择框 */}
-                    <Checkbox
-                      checked={selectedReports.includes(report.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleSelectReport(report.id, e.target.checked);
-                      }}
-                    />
-                    
-                    {/* 序号 */}
-                    <div className="w-6 h-6 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-medium flex-shrink-0">
-                      {(pagination.current - 1) * pagination.pageSize + index + 1}
-                    </div>
-                    
-                    {/* 报告标题 */}
-                     <h3 className="text-base font-medium text-[#24292F] flex-1">
-                       {report.title || report.name}
-                     </h3>
-                  </div>
-                  
-                  <Card.Meta
-                    title={null}
-                    description={
-                      <div>
-                        {/* 描述单独一行 */}
-                        <p className="text-gray-600 mb-2">{report.description || '暂无描述'}</p>
-                        
-                        {/* 字段布局：一行两个字段 */}
-                        <div className="space-y-2 text-sm">
-                          {/* 第一行：报告模板，报告状态 */}
-                          <div className="grid grid-cols-2 gap-x-4">
-                            <div>
-                              <span className="text-[#8B949E]">报告模板：</span>
-                              <span className="text-[#24292F]">{report.template_name}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <span className="text-[#8B949E]">报告状态：</span>
-                              <span className="text-[#24292F] flex items-center gap-1">
-                                {report.report_status === 'generating' ? (
-                                  <>
-                                    <LoadingOutlined className="text-blue-500" spin />
-                                    生成中
-                                  </>
-                                ) : (
-                                  '已生成'
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          {/* 第二行：报告目录，创建人 */}
-                          <div className="grid grid-cols-2 gap-x-4">
-                            <div>
-                              <span className="text-[#8B949E]">报告目录：</span>
-                              <span className="text-[#24292F]">{getCategoryName(report.category_id)}</span>
-                            </div>
-                            <div>
-                              <span className="text-[#8B949E]">创建人：</span>
-                              <span className="text-[#24292F]">{report.created_by}</span>
-                            </div>
-                          </div>
-                          
-                          {/* 第三行：创建时间，更新时间 */}
-                          <div className="grid grid-cols-2 gap-x-4">
-                            <div>
-                              <span className="text-[#8B949E]">创建时间：</span>
-                              <span className="text-[#24292F]">{formatDate(report.created_at)}</span>
-                            </div>
-                            <div>
-                              <span className="text-[#8B949E]">更新时间：</span>
-                              <span className="text-[#24292F]">{report.updated_at ? formatDate(report.updated_at) : '-'}</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* 进度条 - 绝对定位贴近卡片下边缘，不占用高度 */}
-                        {report.report_status === 'generating' && (
-                          <Progress 
-                            percent={report.progress || 0}
-                            showInfo={false}
-                            strokeColor="#3388FF"
-                            size="small"
-                            className="absolute bottom-0 left-0 right-0"
-                            style={{ 
-                              margin: 0, 
-                              padding: 0,
-                              height: '2px',
-                              borderRadius: '0 0 8px 8px'
-                            }}
-                          />
-                        )}
-                      </div>
-                    }
-                  />
-                  
-
-                </Card>
+                  report={report}
+                  index={index}
+                  pagination={pagination}
+                  selectedReports={selectedReports}
+                  handleSelectReport={handleSelectReport}
+                  handleViewReport={handleViewReport}
+                  handleEditReport={handleEditReport}
+                  handleDeleteReport={handleDeleteReport}
+                  getCategoryName={getCategoryName}
+                  formatDate={formatDate}
+                />
               ))}
             </div>
           )}
